@@ -402,7 +402,6 @@ function handleWebSocketMessage(data) {
                             } else if (messageText.startsWith(COMMAND_PREFIX + "weather")) {
 								weatherCommand(messageText, data).catch(error => {
 									console.error("Weather command failed:", error);
-									sendChatMessage("Failed to get weather data");
 								})
 							}
                         }
