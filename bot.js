@@ -24,7 +24,7 @@ const WEATHER_API = process.env.WEATHER_API;
 
 // p5vrq 1251520948
 // 527762906
-const CHAT_CHANNEL_USER_ID = "1251520948"; // This is the User ID of the channel that the bot will join and listen to chat messages of
+const CHAT_CHANNEL_USER_ID = "527762906"; // This is the User ID of the channel that the bot will join and listen to chat messages of
 const COMMAND_PREFIX = "$"
 
 const EVENTSUB_WEBSOCKET_URL = "wss://eventsub.wss.twitch.tv/ws";
@@ -192,33 +192,64 @@ function initializeDatabase() {
     `);
 }
 
-function convertToMs(reminderDict) {
-    let timeUnit = returnTimeUnit(reminderDict["time_unit"]);
-    let timeAmount = reminderDict["time_amount"];
-    let resultMs;
+function splitTime(time) {
+	const unitAliasMap = {};
+	for (const [key, aliases] of Object.entries(VALID_TIME_UNITS_DICT)) {
+		for (const alias of aliases) {
+			unitAliasMap[alias.toLowerCase()] = key;
+		}
+	}
 
-    switch (timeUnit) {
-        case "seconds":
-            resultMs = timeAmount * 1000;
-            break;
-        case "minutes":
-            resultMs = timeAmount * 60 * 1000;
-            break;
-        case "hours":
-            resultMs = timeAmount * 60 * 60 * 1000;
-            break;
-        case "days":
-            resultMs = timeAmount * 24 * 60 * 60 * 1000;
-            break;
-        case "weeks":
-            resultMs = timeAmount * 7 * 24 * 60 * 60 * 1000;
-            break;
-        case "months":
-            resultMs = timeAmount * 30.417 * 24 * 60 * 60 * 1000;
-            break;
-        default:
-            throw new Error("Unknown time unit: " + timeUnit);
-    }
+	const unitPattern = Object.keys(unitAliasMap).join("|");
+	const timeRegex = new RegExp(`(\\d+)\\s*(${unitPattern})`, "gi");
+
+	const splitDict = {};
+	for (const key of Object.keys(VALID_TIME_UNITS_DICT)) {
+		splitDict[key] = 0;
+	}
+
+	let allMatches = time.matchAll(timeRegex);
+	for (const match of allMatches) {
+		const value = Number(match[1]);
+		const unit = match[2].toLowerCase();
+
+		if (unitAliasMap[unit]) {
+			splitDict[unitAliasMap[unit]] = value;
+		}
+	}
+
+	return splitDict;
+}
+
+function convertToMs(reminderDict) {
+	const timeDict = splitTime(reminderDict["time"]);
+    let resultMs = 0;
+
+	for (const unit in timeDict) {
+		const amount = timeDict[unit];
+		switch (unit) {
+			case "seconds":
+				resultMs += amount * 1000;
+				break;
+			case "minutes":
+				resultMs += amount * 60 * 1000;
+				break;
+			case "hours":
+				resultMs += amount * 60 * 60 * 1000;
+				break;
+			case "days":
+				resultMs += amount * 24 * 60 * 60 * 1000;
+				break;
+			case "weeks":
+				resultMs += amount * 7 * 24 * 60 * 60 * 1000;
+				break;
+			case "months":
+				resultMs += amount * 30.417 * 24 * 60 * 60 * 1000;
+				break;
+			default:
+				throw new Error("Unknown time unit: " + unit);
+		}
+	}
 
     return resultMs;
 }
@@ -227,19 +258,8 @@ function sanitizeInput(input) {
 	return input.replace(/[^a-zA-Z0-9@!$ ]/g, '');
 }
 
-function returnTimeUnit(time) {
-    for (let unit in VALID_TIME_UNITS_DICT) {
-        for (let unitTag of VALID_TIME_UNITS_DICT[unit]) {
-            if (time === unitTag) {
-                return unit;
-            }
-        }
-    }
-    return null;
-}
-
 function parseRemindCommand(messageText) {
-	const pattern = new RegExp(`\\${COMMAND_PREFIX}remind(?:me| (\\w+)) in (\\d+)\\s*(\\w+)\\s+(.+)`);
+	const pattern = new RegExp(`\\${COMMAND_PREFIX}remind(?:me| (\w+))\\s+in\\s+((?:\\d+\\s*\\w+\\s*)+)\\s+(.+)`);
 	const match = messageText.match(pattern);
 
 	if (!match) {
@@ -247,18 +267,12 @@ function parseRemindCommand(messageText) {
 	}
 
 	const targetUser = match[1] || "me";
-	const timeAmount = parseInt(match[2], 10);
-	const timeUnit = returnTimeUnit(match[3]);
-	const message = match[4];
-
-	if (!timeUnit) {
-		return "Invalid time unit";
-	}
+	const time = match[2];
+	const message = match[3];
 
 	return {
 		target: targetUser,
-		time_amount: timeAmount,
-		time_unit: timeUnit,
+		time: time,
 		message: message,
 	}
 }
@@ -277,20 +291,24 @@ function remindCommand(messageText, data) {
 		VALUES (?,?,?,?,?)
 	`);
 
+	const currentTime = Date.now();
+	const targetTime = convertToMs(reminderDict)
+
 	insert.run(
 		sender,
 		target,
 		reminderDict["message"],
-		Date.now() + convertToMs(reminderDict),
-		Date.now()
+		currentTime + targetTime,
+		currentTime
 	)
 
 	// Let the user know
-	let timeUnit = reminderDict["time_amount"] !== 1 ? reminderDict["time_unit"] : reminderDict["time_unit"].slice(0, -1);
+	const timeUntil = msToTime(targetTime)
+
 	if (sender === target){
-		sendChatMessage(`${sender}, I will remind you in ${reminderDict["time_amount"]} ${timeUnit}`)
+		sendChatMessage(`${sender}, I will remind you in ${timeUntil}`)
 	} else {
-		sendChatMessage(`${sender}, I will remind ${target} in ${reminderDict["time_amount"]} ${timeUnit}`)
+		sendChatMessage(`${sender}, I will remind ${target} in ${timeUntil}`)
 	}
 }
 
