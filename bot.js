@@ -176,7 +176,7 @@ function runReminderCheck() {
 }
 
 function startReminderScheduler() {
-	const now = Date();
+	const now = new Date();
 	const msUntilNextMinute = 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds());
 
 	setTimeout(() => {
