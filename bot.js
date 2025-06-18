@@ -64,10 +64,6 @@ async function getAuth() {
 		console.log("Token invalid. Refreshing...")
 		await refreshOAuthToken();
 
-		// let data = await response.json();
-		// console.error("Token is not valid. /oauth2/validate returned status code " + response.status);
-		// console.error(data);
-		// process.exit(1);
 	} else {
 		console.log("Validated token.");
 	}
@@ -152,34 +148,42 @@ function msToTime(duration) {
 	return parts.join(" ");
 }
 
-function startReminderScheduler() {
-	setInterval(() => {
-		(async () => {
-			const now = Date.now();
+function runReminderCheck() {
+	(async () => {
+		const now = Date.now();
 	
-			// Fetch due, undelivered reminders
-			const reminders = db.prepare(`
-				SELECT * FROM reminders
-				WHERE delivered = 0 AND trigger_time <= ?
-			`).all(now);
+		// Fetch due, undelivered reminders
+		const reminders = db.prepare(`
+			SELECT * FROM reminders
+			WHERE delivered = 0 AND trigger_time <= ?
+		`).all(now);
 	
-			// Send each reminder and mark as delivered
-			// console.log(reminders)
-			for (const reminder of reminders) {
-				let timeSinceSet = msToTime(now - reminder.created_at)
-
-				if (reminder.sender === reminder.target) {
-					await sendChatMessage(`${reminder.target}, reminder from yourself (${timeSinceSet} ago): ${reminder.message}`);
-				} else {
-					await sendChatMessage(`${reminder.target}, reminder from ${reminder.sender} (${timeSinceSet} ago): ${reminder.message}`);
-				}
+		// Send each reminder and mark as delivered
+		for (const reminder of reminders) {
+			let timeSinceSet = msToTime(now - reminder.created_at)
 	
-				db.prepare(`
-					UPDATE reminders SET delivered = 1 WHERE id = ?
-				`).run(reminder.id);
+			if (reminder.sender === reminder.target) {
+				await sendChatMessage(`${reminder.target}, reminder from yourself (${timeSinceSet} ago): ${reminder.message}`);
+			} else {
+				await sendChatMessage(`${reminder.target}, reminder from ${reminder.sender} (${timeSinceSet} ago): ${reminder.message}`);
 			}
-		})();
-	}, 10_000); // every 10 seconds
+	
+			db.prepare(`
+				UPDATE reminders SET delivered = 1 WHERE id = ?
+			`).run(reminder.id);
+		}
+	})();
+}
+
+function startReminderScheduler() {
+	const now = Date();
+	const msUntilNextMinute = 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds());
+
+	setTimeout(() => {
+		runReminderCheck();
+
+		setInterval(runReminderCheck, 60_000); // every minute
+	}, msUntilNextMinute);
 }
 
 function initializeDatabase() {
