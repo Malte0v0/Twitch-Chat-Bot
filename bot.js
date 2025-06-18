@@ -1,5 +1,4 @@
 import WebSocket from "ws";
-// import {parseRemindCommand} from "./parse.js";
 import Database from "better-sqlite3";
 import fs from "fs";
 import "dotenv/config";
@@ -168,9 +167,9 @@ function startReminderScheduler() {
 				let timeSinceSet = msToTime(reminder.trigger_time - reminder.created_at)
 
 				if (reminder.sender === reminder.target) {
-					sendChatMessage(`${reminder.target}, reminder from yourself (${timeSinceSet} ago): ${reminder.message}`);
+					await sendChatMessage(`${reminder.target}, reminder from yourself (${timeSinceSet} ago): ${reminder.message}`);
 				} else {
-					sendChatMessage(`${reminder.target}, reminder from ${reminder.sender} (${timeSinceSet} ago): ${reminder.message}`);
+					await sendChatMessage(`${reminder.target}, reminder from ${reminder.sender} (${timeSinceSet} ago): ${reminder.message}`);
 				}
 	
 				db.prepare(`
@@ -265,8 +264,11 @@ function parseRemindCommand(messageText) {
 		message: message,
 	}
 }
-function remindCommand(messageText) {
-	let reminderDict = parseRemindCommand(messageText, COMMAND_PREFIX)
+function remindCommand(messageText, data) {
+	let reminderDict = parseRemindCommand(messageText)
+	if (reminderDict === "Invalid time unit") {
+		return
+	}
 
 	let sender = data.payload.event.chatter_user_login.toLowerCase()
 	let target = reminderDict["target"] === "me" ? data.payload.event.chatter_user_login.trim() : reminderDict["target"].toLowerCase()
@@ -313,12 +315,12 @@ function handleWebSocketMessage(data) {
                         if (messageText.toLowerCase().startsWith(COMMAND_PREFIX)) {
                             // The message is a command
                             if (messageText.startsWith(COMMAND_PREFIX + "remind")) {
-								remindCommand(messageText);
+								remindCommand(messageText, data);
                             }
                         }
                     } catch (error) {
 						sendChatMessage('Invalid formatting, the correct formatting is: "$remindme in 5h hello" or "$remind YourMother in 3h hi"')
-						console.log(error.message)
+						console.error(error)
 					}
 
 					break;
