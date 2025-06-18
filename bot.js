@@ -22,7 +22,6 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const WEATHER_API = process.env.WEATHER_API;
 
-
 // p5vrq 1251520948
 // 527762906
 const CHAT_CHANNEL_USER_ID = "1251520948"; // This is the User ID of the channel that the bot will join and listen to chat messages of
@@ -74,7 +73,8 @@ function updateEnvFile(newOAuthToken, newRefreshToken) {
 		`OAUTH_TOKEN=${newOAuthToken}
 CLIENT_ID=${CLIENT_ID}
 CLIENT_SECRET=${CLIENT_SECRET}
-REFRESH_TOKEN=${newRefreshToken}`;
+REFRESH_TOKEN=${newRefreshToken}
+WEATHER_API=${WEATHER_API}`;
 	fs.writeFileSync(".env", envData, "utf-8");
 }
 
@@ -348,14 +348,12 @@ async function getWeather(cityName) {
 
 async function weatherCommand(messageText, data) {
 	const pattern = new RegExp(`\\${COMMAND_PREFIX}weather (\\w+)`);
-	const match = messageText.match(pattern)
+	const match = messageText.match(pattern);
 
-	if (!match) {
-		throw new Error("Weather command, no match in message");
-	}
+	if (!match) throw new Error("Weather command, no match in message");
 
 	const cityName = match[1];
-	const sender = data.payload.event.chatter_user_login.toLowerCase()
+	const sender = data.payload.event.chatter_user_login.toLowerCase();
 	const weatherJson = await getWeather(cityName);
 
 	const weather = weatherJson["main"];
