@@ -9,7 +9,7 @@ const VALID_TIME_UNITS_DICT = {
     weeks: ["w", "week", "weeks"],
     months: ["month", "months"],
     seconds: ["s", "second", "seconds"],
-    minutes: ["m", "min", "mins", "minutes"],
+    minutes: ["m", "min", "mins", "minute", "minutes"],
     hours: ["h", "hour", "hours"]
 }
 
