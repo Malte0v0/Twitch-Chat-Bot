@@ -20,6 +20,7 @@ let OAUTH_TOKEN = process.env.OAUTH_TOKEN;
 let REFRESH_TOKEN = process.env.REFRESH_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const WEATHER_API = process.env.WEATHER_API;
 
 
 // p5vrq 1251520948
@@ -297,6 +298,46 @@ function remindCommand(messageText, data) {
 	}
 }
 
+async function getWeather(cityName) {
+	try {
+		const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${WEATHER_API}&units=metric`);
+		if (!response.ok) throw new Error("Network error:" + response.statusText);
+		const data = await response.json()
+
+		return data
+	} catch (error) {
+		console.error(error)
+	}
+}
+
+async function weatherCommand(messageText, data) {
+	const pattern = /\$weather (\w+)/;
+	const match = messageText.match(pattern)
+
+	if (!match) {
+		throw new Error("Weather command, no match in message");
+	}
+
+	const cityName = match[1];
+	const sender = data.payload.event.chatter_user_login.toLowerCase()
+	const weatherJson = await getWeather(cityName);
+
+	const weather = weatherJson["main"];
+	const temp = weather["temp"];
+	const feelsLike = weather["feels_like"];
+	const humidity = weather["humidity"];
+
+	const clouds = weatherJson["clouds"]["all"]; // implement cloud emoji getting
+	const windSpeed = weatherJson["wind"]["speed"]
+	const city = weatherJson["name"];
+	const country = weatherJson["sys"]["country"];
+	// temp variables
+	// const emoji = "🌤️"
+	const emoji = ""
+	sendChatMessage(`${sender}, ${city}, ${country} (now): ${emoji} ${temp}°C, feels like ${feelsLike}°C. Cloud cover: ${clouds}%. Wind speed: ${windSpeed} m/s. Humidity: ${humidity}%`)
+
+}
+
 function handleWebSocketMessage(data) {
 	switch (data.metadata.message_type) {
 		case "session_welcome": // First message you get from the WebSocket server when connecting
@@ -319,7 +360,12 @@ function handleWebSocketMessage(data) {
                             // The message is a command
                             if (messageText.startsWith(COMMAND_PREFIX + "remind")) {
 								remindCommand(messageText, data);
-                            }
+                            } else if (messageText.startsWith(COMMAND_PREFIX + "weather")) {
+								weatherCommand(messageText, data).catch(error => {
+									console.error("Weather command failed:", error);
+									sendChatMessage("Failed to get weather data");
+								})
+							}
                         }
                     } catch (error) {
 						sendChatMessage('Invalid format. The correct format is: "$remindme in [time] [message]" or "$remind [username] in [time] [message]"')
