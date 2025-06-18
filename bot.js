@@ -192,6 +192,10 @@ function initializeDatabase() {
     `);
 }
 
+function sanitizeInput(input) { 
+	return input.replace(/[^a-zA-Z0-9@!$ ]/g, '');
+}
+
 function splitTime(time) {
 	const unitAliasMap = {};
 	for (const [key, aliases] of Object.entries(VALID_TIME_UNITS_DICT)) {
@@ -199,14 +203,34 @@ function splitTime(time) {
 			unitAliasMap[alias.toLowerCase()] = key;
 		}
 	}
+	// Creates an object like this
+	/*
+	{
+		"h": "hours",
+		"hour": "hours",
+		"hours": "hours",
+		... 
+	}
+	
+	*/
 
 	const unitPattern = Object.keys(unitAliasMap).join("|");
+	// unitPattern will look like ["h|hour|hours|..."]
 	const timeRegex = new RegExp(`(\\d+)\\s*(${unitPattern})`, "gi");
 
 	const splitDict = {};
 	for (const key of Object.keys(VALID_TIME_UNITS_DICT)) {
 		splitDict[key] = 0;
 	}
+	// Make an object that looks like this
+	/*
+	{
+		seconds: 0,
+		minutes: 0,
+		hours: 0,
+		...
+	}
+	*/
 
 	let allMatches = time.matchAll(timeRegex);
 	for (const match of allMatches) {
@@ -223,7 +247,7 @@ function splitTime(time) {
 
 function convertToMs(reminderDict) {
 	const timeDict = splitTime(reminderDict["time"]);
-    let resultMs = 0;
+	let resultMs = 0;
 
 	for (const unit in timeDict) {
 		const amount = timeDict[unit];
@@ -251,21 +275,16 @@ function convertToMs(reminderDict) {
 		}
 	}
 
-    return resultMs;
-}
-
-function sanitizeInput(input) { 
-	return input.replace(/[^a-zA-Z0-9@!$ ]/g, '');
+	return resultMs;
 }
 
 function parseRemindCommand(messageText) {
-	const pattern = new RegExp(`\\${COMMAND_PREFIX}remind(?:me| (\w+))\\s+in\\s+((?:\\d+\\s*\\w+\\s*)+)\\s+(.+)`);
+	const pattern = new RegExp(`\\${COMMAND_PREFIX}remind(?:me|\\s+(\\w+))\\s+in\\s+((?:\\d+\\s*\\w+\\s*)+)\\s+(.+)`);
 	const match = messageText.match(pattern);
 
 	if (!match) {
 		return "No match";
 	}
-
 	const targetUser = match[1] || "me";
 	const time = match[2];
 	const message = match[3];
@@ -279,32 +298,29 @@ function parseRemindCommand(messageText) {
 
 function remindCommand(messageText, data) {
 	let reminderDict = parseRemindCommand(messageText)
-	if (reminderDict === "Invalid time unit") {
+	if (reminderDict === "No match") {
 		return
 	}
-
+	// console.log(reminderDict["target"])
 	let sender = data.payload.event.chatter_user_login.toLowerCase()
 	let target = reminderDict["target"] === "me" ? data.payload.event.chatter_user_login.trim() : reminderDict["target"].toLowerCase()
+	const currentTime = Date.now();
+	const timeToTarget = convertToMs(reminderDict)
 
 	const insert = db.prepare(`
 		INSERT INTO reminders (sender, target, message, trigger_time, created_at)
 		VALUES (?,?,?,?,?)
 	`);
-
-	const currentTime = Date.now();
-	const targetTime = convertToMs(reminderDict)
-
 	insert.run(
 		sender,
 		target,
 		reminderDict["message"],
-		currentTime + targetTime,
+		currentTime + timeToTarget,
 		currentTime
 	)
 
-	// Let the user know
-	const timeUntil = msToTime(targetTime)
-
+	// Let the user know that a reminder has been set
+	const timeUntil = msToTime(timeToTarget)
 	if (sender === target){
 		sendChatMessage(`${sender}, I will remind you in ${timeUntil}`)
 	} else {
