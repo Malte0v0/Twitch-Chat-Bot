@@ -165,7 +165,7 @@ function startReminderScheduler() {
 			// Send each reminder and mark as delivered
 			// console.log(reminders)
 			for (const reminder of reminders) {
-				let timeSinceSet = msToTime(reminder.trigger_time - reminder.created_at)
+				let timeSinceSet = msToTime(now - reminder.created_at)
 
 				if (reminder.sender === reminder.target) {
 					await sendChatMessage(`${reminder.target}, reminder from yourself (${timeSinceSet} ago): ${reminder.message}`);
