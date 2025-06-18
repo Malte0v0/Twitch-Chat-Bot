@@ -311,7 +311,7 @@ async function getWeather(cityName) {
 }
 
 async function weatherCommand(messageText, data) {
-	const pattern = /\$weather (\w+)/;
+	const pattern = new RegExp(`\\${COMMAND_PREFIX}weather (\\w+)`);
 	const match = messageText.match(pattern)
 
 	if (!match) {
