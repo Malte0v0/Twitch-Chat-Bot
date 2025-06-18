@@ -1,5 +1,5 @@
 import WebSocket from "ws";
-import {parseRemindCommand} from "./parse.js";
+// import {parseRemindCommand} from "./parse.js";
 import Database from "better-sqlite3";
 import fs from "fs";
 import "dotenv/config";
@@ -166,8 +166,12 @@ function startReminderScheduler() {
 			// console.log(reminders)
 			for (const reminder of reminders) {
 				let timeSinceSet = msToTime(reminder.trigger_time - reminder.created_at)
-				const chatMessage = `${reminder.target}, reminder from ${reminder.sender} (${timeSinceSet} ago): ${reminder.message}`;
-				sendChatMessage(chatMessage);
+
+				if (reminder.sender === reminder.target) {
+					sendChatMessage(`${reminder.target}, reminder from yourself (${timeSinceSet} ago): ${reminder.message}`);
+				} else {
+					sendChatMessage(`${reminder.target}, reminder from ${reminder.sender} (${timeSinceSet} ago): ${reminder.message}`);
+				}
 	
 				db.prepare(`
 					UPDATE reminders SET delivered = 1 WHERE id = ?
@@ -189,17 +193,6 @@ function initializeDatabase() {
         created_at INTEGER NOT NULL
         )        
     `);
-}
-
-function returnTimeUnit(time) {
-    for (let unit in VALID_TIME_UNITS_DICT) {
-        for (let unitTag of VALID_TIME_UNITS_DICT[unit]) {
-            if (time === unitTag) {
-                return unit
-            }
-        }
-    }
-    return "(Couldnt figure out the correct time unit from ur stupid message)"
 }
 
 function convertToMs(reminderDict) {
@@ -237,6 +230,68 @@ function sanitizeInput(input) {
 	return input.replace(/[^a-zA-Z0-9@!$ ]/g, '');
 }
 
+function returnTimeUnit(time) {
+    for (let unit in VALID_TIME_UNITS_DICT) {
+        for (let unitTag of VALID_TIME_UNITS_DICT[unit]) {
+            if (time === unitTag) {
+                return unit;
+            }
+        }
+    }
+    return null;
+}
+
+function parseRemindCommand(messageText) {
+	const pattern = new RegExp(`\\${COMMAND_PREFIX}remind(?:me| (\\w+)) in (\\d+)\\s*(\\w+)\\s+(.+)`);
+	const match = messageText.match(pattern);
+
+	if (!match) {
+		return "No match";
+	}
+
+	const targetUser = match[1] || "me";
+	const timeAmount = parseInt(match[2], 10);
+	const timeUnit = returnTimeUnit(match[3]);
+	const message = match[4];
+
+	if (!timeUnit) {
+		return "Invalid time unit";
+	}
+
+	return {
+		target: targetUser,
+		time_amount: timeAmount,
+		time_unit: timeUnit,
+		message: message,
+	}
+}
+function remindCommand(messageText) {
+	let reminderDict = parseRemindCommand(messageText, COMMAND_PREFIX)
+
+	let sender = data.payload.event.chatter_user_login.toLowerCase()
+	let target = reminderDict["target"] === "me" ? data.payload.event.chatter_user_login.trim() : reminderDict["target"].toLowerCase()
+
+	const insert = db.prepare(`
+		INSERT INTO reminders (sender, target, message, trigger_time, created_at)
+		VALUES (?,?,?,?,?)
+	`);
+
+	insert.run(
+		sender,
+		target,
+		reminderDict["message"],
+		Date.now() + convertToMs(reminderDict),
+		Date.now()
+	)
+
+	// Let the user know
+	if (sender === target){
+		sendChatMessage(`${sender}, I will remind you in ${reminderDict["time_amount"]} ${reminderDict["time_unit"]}`)
+	} else {
+		sendChatMessage(`${sender}, I will remind ${target} in ${reminderDict["time_amount"]} ${reminderDict["time_unit"]}`)
+	}
+}
+
 function handleWebSocketMessage(data) {
 	switch (data.metadata.message_type) {
 		case "session_welcome": // First message you get from the WebSocket server when connecting
@@ -258,32 +313,7 @@ function handleWebSocketMessage(data) {
                         if (messageText.toLowerCase().startsWith(COMMAND_PREFIX)) {
                             // The message is a command
                             if (messageText.startsWith(COMMAND_PREFIX + "remind")) {
-                                let reminderDict = parseRemindCommand(messageText, COMMAND_PREFIX)
-    
-                                let sender = data.payload.event.chatter_user_login.toLowerCase()
-                                let target = reminderDict["target"] === "me" ? data.payload.event.chatter_user_login.trim() : reminderDict["target"].toLowerCase()
-                                // console.log(reminderDict)
-                                // console.log(sender + "\n" + target)
-                                const insert = db.prepare(`
-                                    INSERT INTO reminders (sender, target, message, trigger_time, created_at)
-                                    VALUES (?,?,?,?,?)
-                                `);
-    
-                                insert.run(
-                                    sender,
-                                    target,
-                                    reminderDict["message"],
-                                    Date.now() + convertToMs(reminderDict),
-                                    Date.now()
-                                )
-    
-                                // Let the user know
-                                let timeUnit = returnTimeUnit(reminderDict["time_unit"])
-                                if (sender === target){
-                                    sendChatMessage(`${sender}, I will remind you in ${reminderDict["time_amount"]} ${timeUnit}`)
-                                } else {
-                                    sendChatMessage(`${sender}, I will remind ${target} in ${reminderDict["time_amount"]} ${timeUnit}`)
-                                }
+								remindCommand(messageText);
                             }
                         }
                     } catch (error) {
