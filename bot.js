@@ -265,6 +265,7 @@ function parseRemindCommand(messageText) {
 		message: message,
 	}
 }
+
 function remindCommand(messageText, data) {
 	let reminderDict = parseRemindCommand(messageText)
 	if (reminderDict === "Invalid time unit") {
@@ -321,7 +322,7 @@ function handleWebSocketMessage(data) {
                             }
                         }
                     } catch (error) {
-						sendChatMessage('Invalid formatting, the correct formatting is: "$remindme in 5h hello" or "$remind YourMother in 3h hi"')
+						sendChatMessage('Invalid format. The correct format is: "$remindme in [time] [message]" or "$remind [username] in [time] [message]"')
 						console.error(error)
 					}
 
