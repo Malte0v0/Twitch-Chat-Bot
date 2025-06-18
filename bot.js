@@ -24,7 +24,7 @@ const WEATHER_API = process.env.WEATHER_API;
 
 // p5vrq 1251520948
 // 527762906
-const CHAT_CHANNEL_USER_ID = "527762906"; // This is the User ID of the channel that the bot will join and listen to chat messages of
+const CHAT_CHANNEL_USER_ID = "1251520948"; // This is the User ID of the channel that the bot will join and listen to chat messages of
 const COMMAND_PREFIX = "$"
 
 const EVENTSUB_WEBSOCKET_URL = "wss://eventsub.wss.twitch.tv/ws";
@@ -428,6 +428,10 @@ function handleWebSocketMessage(data) {
 	}
 }
 
+function sleep(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function sendChatMessage(chatMessage) {
 	let response = await fetch('https://api.twitch.tv/helix/chat/messages', {
 		method: "POST",
@@ -453,6 +457,12 @@ async function sendChatMessage(chatMessage) {
 		await refreshOAuthToken();
 		await sendChatMessage(chatMessage); // Retry
     }
+
+	if (response.status === 429) {
+		console.log("Rate limit reached, retrying in 2 seconds...");
+		await sleep(2000);
+		sendChatMessage(chatMessage);
+	}
 }
 
 async function registerEventSubListeners() {
