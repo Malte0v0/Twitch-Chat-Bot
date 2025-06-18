@@ -298,6 +298,46 @@ function remindCommand(messageText, data) {
 	}
 }
 
+function getWeatherEmoji(weatherJson) {
+	if (!weatherJson || !weatherJson.weather || !weatherJson.weather[0]) {
+		return "❓";
+	}
+
+	const main = weatherJson.weather[0].main.toLowerCase();
+	const id = weatherJson.weather[0].id;
+
+	switch (main) {
+		case "clear":
+			return "☀️";
+		case "clouds":
+			if (id === 801) return "🌤️";
+			if (id === 802) return "⛅";
+			if (id >= 803) return "☁️";
+			return "🌥️";
+		case "rain":
+			return "🌧️";
+		case "drizzle":
+			return "🌦️";
+		case "thunderstorm":
+			return "⛈️";
+		case "snow":
+			return "❄️";
+		case "mist":
+		case "fog":
+		case "haze":
+		case "smoke":
+		case "dust":
+		case "sand":
+		case "ash":
+			return "🌫️";
+		case "squall":
+		case "tornado":
+			return "🌪️";
+		default:
+			return "❓";
+	}
+}
+
 async function getWeather(cityName) {
 	try {
 		const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${WEATHER_API}&units=metric`);
@@ -331,9 +371,8 @@ async function weatherCommand(messageText, data) {
 	const windSpeed = weatherJson["wind"]["speed"]
 	const city = weatherJson["name"];
 	const country = weatherJson["sys"]["country"];
-	// temp variables
-	// const emoji = "🌤️"
-	const emoji = ""
+	const emoji = getWeatherEmoji(weatherJson);
+	
 	sendChatMessage(`${sender}, ${city}, ${country} (now): ${emoji} ${temp}°C, feels like ${feelsLike}°C. Cloud cover: ${clouds}%. Wind speed: ${windSpeed} m/s. Humidity: ${humidity}%`)
 
 }
