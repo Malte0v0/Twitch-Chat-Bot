@@ -110,6 +110,7 @@ async function refreshOAuthToken() {
 
 		// save to .env
 		updateEnvFile(access_token, refresh_token);
+		console.log(".env file was updated")
 	
 		OAUTH_TOKEN = access_token;
 		REFRESH_TOKEN = refresh_token;
@@ -287,10 +288,11 @@ function remindCommand(messageText, data) {
 	)
 
 	// Let the user know
+	let timeUnit = reminderDict["time_amount"] !== 1 ? reminderDict["time_unit"] : reminderDict["time_unit"].slice(0, -1);
 	if (sender === target){
-		sendChatMessage(`${sender}, I will remind you in ${reminderDict["time_amount"]} ${reminderDict["time_unit"]}`)
+		sendChatMessage(`${sender}, I will remind you in ${reminderDict["time_amount"]} ${timeUnit}`)
 	} else {
-		sendChatMessage(`${sender}, I will remind ${target} in ${reminderDict["time_amount"]} ${reminderDict["time_unit"]}`)
+		sendChatMessage(`${sender}, I will remind ${target} in ${reminderDict["time_amount"]} ${timeUnit}`)
 	}
 }
 
