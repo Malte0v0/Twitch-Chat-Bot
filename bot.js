@@ -190,6 +190,17 @@ function initializeDatabase() {
         created_at INTEGER NOT NULL
         )        
     `);
+	
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS chatter_status (
+        user_id INTEGER PRIMARY KEY,
+        user_name TEXT NOT NULL,
+        time INTEGER NOT NULL,
+		message TEXT NOT NULL,
+        is_afk INTEGER NOT NULL DEFAULT 0,
+        is_asleep INTEGER NOT NULL DEFAULT 0
+        )        
+    `);
 }
 
 function sanitizeInput(input) { 
@@ -405,6 +416,72 @@ async function weatherCommand(messageText, data) {
 
 }
 
+function checkChatterStatus(userId) {
+	const status = db.prepare(`
+	SELECT time, message, is_afk, is_asleep FROM chatter_status
+	WHERE user_id = ?
+	`).get(userId);
+
+	if (status) {
+		const {time: time, message: message, is_afk: isAfk, is_asleep: isAsleep} = status;
+		return {time, message, isAfk, isAsleep};
+	} else {
+		return null;
+	}
+}
+
+function toggleAfk(userId, message) {
+	db.prepare(`
+		UPDATE chatter_status SET is_afk = NOT is_afk, time = ?, message = ? WHERE user_id = ?
+	`).run(Date.now(), message, userId);
+}
+
+function toggleAsleep(userId, message) {
+	db.prepare(`
+		UPDATE chatter_status SET is_asleep = NOT is_asleep, time = ?, message = ? WHERE user_id = ?
+	`).run(Date.now(), message, userId);
+}
+
+function insertChatterStatus(data) {
+	const userId = data.payload.event.chatter_user_id
+	const userLogin = data.payload.event.chatter_user_login
+	const currentTime = Date.now()
+
+	db.prepare(`
+	INSERT OR IGNORE INTO chatter_status (user_id, user_name, time, message, is_afk, is_asleep)
+	VALUES (?,?,?,?,?,?)
+	`).run(userId, userLogin, currentTime, "", 0, 0);
+}
+
+function setUserStatus(data, statusType) {
+	const userId = data.payload.event.chatter_user_id
+	const userLogin = data.payload.event.chatter_user_login
+
+	
+	let status = checkChatterStatus(userId);
+	if (!status) {
+		insertChatterStatus(data);
+		status = checkChatterStatus(userId);
+	}
+	
+	let messageText = data.payload.event.message.text.trim()
+
+	const pattern = new RegExp(`\\${COMMAND_PREFIX}${statusType} (.*)`)
+	const match = messageText.match(pattern);
+	let message = "";
+	if (match && match[1]) {
+		message = ": " + match[1].trim();
+	}
+
+	if (statusType === "afk") {
+		toggleAfk(userId, message);
+		sendChatMessage(`${userLogin} is now AFK${message}`);
+	} else if (statusType === "sleep") {
+		toggleAsleep(userId, message);
+		sendChatMessage(`${userLogin} is now sleeping${message}`);
+	}
+}
+
 function handleWebSocketMessage(data) {
 	switch (data.metadata.message_type) {
 		case "session_welcome": // First message you get from the WebSocket server when connecting
@@ -418,10 +495,36 @@ function handleWebSocketMessage(data) {
 				case "channel.chat.message":
 					// First, print the message to the program's console.
 					console.log(`MSG #${data.payload.event.broadcaster_user_login} <${data.payload.event.chatter_user_login}> ${data.payload.event.message.text}`);
+					if (data?.payload?.event?.message?.text) {
+						data.payload.event.message.text = sanitizeInput(data.payload.event.message.text);
+					}
 
-                    let messageText = data.payload.event.message.text.trim()
-					messageText = sanitizeInput(messageText)
-                    
+					// AFK AND SLEEPING START
+					try {
+						const userId = data.payload.event.chatter_user_id;
+						const userLogin = data.payload.event.chatter_user_login;
+						const status = checkChatterStatus(userId);
+						
+						if (status && (status.isAfk || status.isAsleep)) {
+							const timeSince = msToTime(Date.now() - status.time); 
+							
+							if (status.isAfk) {
+								toggleAfk(userId, "");
+								sendChatMessage(`${userLogin} is no longer AFK${status.message} (${timeSince})`);
+							} else if (status.isAsleep) {
+								toggleAsleep(userId, "");
+								sendChatMessage(`${userLogin} is no longer sleeping${status.message} (${timeSince})`);
+							}
+							break;
+						}
+					} catch (error) {
+						console.error(error);
+						break;
+					}
+					// AFK AND SLEEPING END
+					
+					// COMMANDS START
+					let messageText = data.payload.event.message.text.trim()
 					try {
                         if (messageText.toLowerCase().startsWith(COMMAND_PREFIX)) {
                             // The message is a command
@@ -431,13 +534,17 @@ function handleWebSocketMessage(data) {
 								weatherCommand(messageText, data).catch(error => {
 									console.error("Weather command failed:", error);
 								})
+							} else if (messageText.startsWith(COMMAND_PREFIX + "afk")) {
+								setUserStatus(data, "afk");
+							} else if (messageText.startsWith(COMMAND_PREFIX + "sleep")) {
+								setUserStatus(data, "sleep");
 							}
                         }
                     } catch (error) {
 						sendChatMessage('Invalid format. The correct format is: "$remindme in [time] [message]" or "$remind [username] in [time] [message]"')
-						console.error(error)
+						console.error(error);
 					}
-
+					// COMMANDS END
 					break;
 			}
 			break;
