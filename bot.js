@@ -134,17 +134,35 @@ function startWebSocketClient() {
 	return websocketClient;
 }
 
-function msToTime(duration) {
-	let seconds = Math.floor((duration / 1000) % 60);
-	let minutes = Math.floor((duration / (1000 * 60)) % 60);
-	let hours = Math.floor(duration / (1000 * 60 * 60));
+function msToHuman(duration) {
+  const msInSecond = 1000;
+  const msInMinute = msInSecond * 60;
+  const msInHour   = msInMinute * 60;
+  const msInDay    = msInHour * 24;
+  const msInWeek   = msInDay * 7;
 
-	let parts = []
-	if (hours) parts.push(`${hours}h`);
-	if (minutes) parts.push(`${minutes}m`);
-	if (seconds || parts.length === 0) parts.push(`${seconds}s`);
+  let weeks  = Math.floor(duration / msInWeek);
+  duration %= msInWeek;
 
-	return parts.join(" ");
+  let days   = Math.floor(duration / msInDay);
+  duration %= msInDay;
+
+  let hours  = Math.floor(duration / msInHour);
+  duration %= msInHour;
+
+  let minutes = Math.floor(duration / msInMinute);
+  duration %= msInMinute;
+
+  let seconds = Math.floor(duration / msInSecond);
+
+  let parts = [];
+  if (weeks)   parts.push(`${weeks}w`);
+  if (days)    parts.push(`${days}d`);
+  if (hours)   parts.push(`${hours}h`);
+  if (minutes) parts.push(`${minutes}m`);
+  if (seconds || parts.length === 0) parts.push(`${seconds}s`);
+
+  return parts.join(" ");
 }
 
 function startReminderScheduler() {
@@ -160,7 +178,7 @@ function startReminderScheduler() {
 	
 			// Send each reminder and mark as delivered
 			for (const reminder of reminders) {
-				let timeSinceSet = msToTime(now - reminder.created_at)
+				let timeSinceSet = msToHuman(now - reminder.created_at)
 
 				if (reminder.sender === reminder.target) {
 					await sendChatMessage(`${reminder.target}, reminder from yourself (${timeSinceSet} ago): ${reminder.message}`);
@@ -173,7 +191,7 @@ function startReminderScheduler() {
 				`).run(reminder.id);
 			}
 		})();
-	}, 10_000); // every 10 seconds
+	}, 10_000);
 }
 
 function initializeDatabase() {
@@ -202,7 +220,7 @@ function initializeDatabase() {
 }
 
 function sanitizeInput(input) {
-  return input.replace(/[^\p{L}\p{N}@!$_: \p{Emoji}]/gu, '');
+  return input.replace(/[\x00-\x1F\x7F]/g, '');
 }
 
 function splitTime(time) {
@@ -277,7 +295,7 @@ function convertToMs(time) {
 				resultMs += amount * 7 * 24 * 60 * 60 * 1000;
 				break;
 			case "months":
-				resultMs += amount * 30.417 * 24 * 60 * 60 * 1000;
+				resultMs += amount * 30 * 24 * 60 * 60 * 1000;
 				break;
 			default:
 				throw new Error("Unknown time unit: " + unit);
@@ -329,7 +347,7 @@ function remindCommand(messageText, data) {
 	)
 
 	// Let the user know that a reminder has been set
-	const timeUntil = msToTime(timeToTarget)
+	const timeUntil = msToHuman(timeToTarget)
 	if (sender === target){
 		sendChatMessage(`${sender}, I will remind you in ${timeUntil}`)
 	} else {
@@ -537,7 +555,7 @@ function handleWebSocketMessage(data) {
 						}
 
 						if (status && (status.isAfk || status.isAsleep)) {
-							const timeSince = msToTime(Date.now() - status.time); 
+							const timeSince = msToHuman(Date.now() - status.time); 
 							
 							if (status.isAfk) {
 								toggleAfkStatus(userId);
