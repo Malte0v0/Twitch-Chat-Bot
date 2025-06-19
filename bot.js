@@ -220,13 +220,8 @@ function splitTime(time) {
 		"hours": "hours",
 		... 
 	}
-	
 	*/
-
-	const unitPattern = Object.keys(unitAliasMap).join("|");
-	// unitPattern will look like ["h|hour|hours|..."]
-	const timeRegex = new RegExp(`(\\d+)\\s*(${unitPattern})`, "gi");
-
+	
 	const splitDict = {};
 	for (const key of Object.keys(VALID_TIME_UNITS_DICT)) {
 		splitDict[key] = 0;
@@ -238,24 +233,29 @@ function splitTime(time) {
 		minutes: 0,
 		hours: 0,
 		...
-	}
+		}
 	*/
 
+	const unitPattern = Object.keys(unitAliasMap).join("|");
+	// unitPattern will look like ["h|hour|hours|..."]	
+	
+	const timeRegex = new RegExp(`(\\d+)\\s*(${unitPattern})`, "gi");
 	let allMatches = time.matchAll(timeRegex);
+
 	for (const match of allMatches) {
-		const value = Number(match[1]);
+		const amount = Number(match[1]);
 		const unit = match[2].toLowerCase();
 
 		if (unitAliasMap[unit]) {
-			splitDict[unitAliasMap[unit]] = value;
+			splitDict[unitAliasMap[unit]] = amount;
 		}
 	}
 
 	return splitDict;
 }
 
-function convertToMs(reminderDict) {
-	const timeDict = splitTime(reminderDict["time"]);
+function convertToMs(time) {
+	const timeDict = splitTime(time);
 	let resultMs = 0;
 
 	for (const unit in timeDict) {
@@ -314,7 +314,7 @@ function remindCommand(messageText, data) {
 	let sender = data.payload.event.chatter_user_login.toLowerCase()
 	let target = reminderDict["target"] === "me" ? data.payload.event.chatter_user_login.trim() : reminderDict["target"].toLowerCase()
 	const currentTime = Date.now();
-	const timeToTarget = convertToMs(reminderDict)
+	const timeToTarget = convertToMs(reminderDict["time"])
 
 	const insert = db.prepare(`
 		INSERT INTO reminders (sender, target, message, trigger_time, created_at)
