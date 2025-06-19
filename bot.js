@@ -201,8 +201,8 @@ function initializeDatabase() {
     `);
 }
 
-function sanitizeInput(input) { 
-	return input.replace(/[^a-zA-Z0-9@!$ ]/g, '');
+function sanitizeInput(input) {
+  return input.replace(/[^\p{L}\p{N}@!$ \p{Emoji}]/gu, '');
 }
 
 function splitTime(time) {
