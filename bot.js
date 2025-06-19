@@ -202,7 +202,7 @@ function initializeDatabase() {
 }
 
 function sanitizeInput(input) {
-  return input.replace(/[^\p{L}\p{N}@!$ \p{Emoji}]/gu, '');
+  return input.replace(/[^\p{L}\p{N}@!$_: \p{Emoji}]/gu, '');
 }
 
 function splitTime(time) {
