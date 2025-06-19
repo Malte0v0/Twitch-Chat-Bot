@@ -107,7 +107,6 @@ async function refreshOAuthToken() {
 
 		// save to .env
 		updateEnvFile(access_token, refresh_token);
-		console.log(".env file was updated")
 	
 		OAUTH_TOKEN = access_token;
 		REFRESH_TOKEN = refresh_token;
@@ -160,7 +159,6 @@ function startReminderScheduler() {
 			`).all(now);
 	
 			// Send each reminder and mark as delivered
-			// console.log(reminders)
 			for (const reminder of reminders) {
 				let timeSinceSet = msToTime(now - reminder.created_at)
 
@@ -430,13 +428,13 @@ function checkChatterStatus(userId) {
 	}
 }
 
-function toggleAfk(userId, message) {
+function toggleAfkStatus(userId, message = "") {
 	db.prepare(`
 		UPDATE chatter_status SET is_afk = NOT is_afk, time = ?, message = ? WHERE user_id = ?
 	`).run(Date.now(), message, userId);
 }
 
-function toggleAsleep(userId, message) {
+function toggleAsleepStatus(userId, message = "") {
 	db.prepare(`
 		UPDATE chatter_status SET is_asleep = NOT is_asleep, time = ?, message = ? WHERE user_id = ?
 	`).run(Date.now(), message, userId);
@@ -453,10 +451,9 @@ function insertChatterStatus(data) {
 	`).run(userId, userLogin, currentTime, "", 0, 0);
 }
 
-function setUserStatus(data, statusType) {
+function setUserStatus(messageText, data, statusType) {
 	const userId = data.payload.event.chatter_user_id
 	const userLogin = data.payload.event.chatter_user_login
-
 	
 	let status = checkChatterStatus(userId);
 	if (!status) {
@@ -464,8 +461,7 @@ function setUserStatus(data, statusType) {
 		status = checkChatterStatus(userId);
 	}
 	
-	let messageText = data.payload.event.message.text.trim()
-
+	// Get the afk or sleep message and format it in to a variable called message
 	const pattern = new RegExp(`\\${COMMAND_PREFIX}${statusType} (.*)`)
 	const match = messageText.match(pattern);
 	let message = "";
@@ -474,10 +470,10 @@ function setUserStatus(data, statusType) {
 	}
 
 	if (statusType === "afk") {
-		toggleAfk(userId, message);
+		toggleAfkStatus(userId, message);
 		sendChatMessage(`${userLogin} is now AFK${message}`);
 	} else if (statusType === "sleep") {
-		toggleAsleep(userId, message);
+		toggleAsleepStatus(userId, message);
 		sendChatMessage(`${userLogin} is now sleeping${message}`);
 	}
 }
@@ -495,6 +491,7 @@ function handleWebSocketMessage(data) {
 				case "channel.chat.message":
 					// First, print the message to the program's console.
 					console.log(`MSG #${data.payload.event.broadcaster_user_login} <${data.payload.event.chatter_user_login}> ${data.payload.event.message.text}`);
+					// Sanitize the message text
 					if (data?.payload?.event?.message?.text) {
 						data.payload.event.message.text = sanitizeInput(data.payload.event.message.text);
 					}
@@ -509,10 +506,10 @@ function handleWebSocketMessage(data) {
 							const timeSince = msToTime(Date.now() - status.time); 
 							
 							if (status.isAfk) {
-								toggleAfk(userId, "");
+								toggleAfkStatus(userId);
 								sendChatMessage(`${userLogin} is no longer AFK${status.message} (${timeSince})`);
 							} else if (status.isAsleep) {
-								toggleAsleep(userId, "");
+								toggleAsleepStatus(userId);
 								sendChatMessage(`${userLogin} is no longer sleeping${status.message} (${timeSince})`);
 							}
 							break;
@@ -535,9 +532,9 @@ function handleWebSocketMessage(data) {
 									console.error("Weather command failed:", error);
 								})
 							} else if (messageText.startsWith(COMMAND_PREFIX + "afk")) {
-								setUserStatus(data, "afk");
+								setUserStatus(messageText, data, "afk");
 							} else if (messageText.startsWith(COMMAND_PREFIX + "sleep")) {
-								setUserStatus(data, "sleep");
+								setUserStatus(messageText, data, "sleep");
 							}
                         }
                     } catch (error) {
