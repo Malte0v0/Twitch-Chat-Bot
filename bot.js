@@ -414,15 +414,36 @@ async function weatherCommand(messageText, data) {
 
 }
 
+function getAfkOrAsleepUsernames() {
+	const query = db.prepare("SELECT user_name FROM chatter_status WHERE is_afk = 1 OR is_asleep = 1");
+	const rows = query.all()
+
+	return rows.map(row => row.user_name)
+}
+
+function checkChatterStatusByName(userName) {
+	const status = db.prepare(`
+	SELECT user_name, time, message, is_afk, is_asleep FROM chatter_status
+	WHERE user_name = ?
+	`).get(userName);
+
+	if (status) {
+		const {user_name: user_name, time: time, message: message, is_afk: isAfk, is_asleep: isAsleep} = status;
+		return {user_name, time, message, isAfk, isAsleep};
+	} else {
+		return null;
+	}
+}
+
 function checkChatterStatus(userId) {
 	const status = db.prepare(`
-	SELECT time, message, is_afk, is_asleep FROM chatter_status
+	SELECT user_name, time, message, is_afk, is_asleep FROM chatter_status
 	WHERE user_id = ?
 	`).get(userId);
 
 	if (status) {
-		const {time: time, message: message, is_afk: isAfk, is_asleep: isAsleep} = status;
-		return {time, message, isAfk, isAsleep};
+		const {user_name: user_name, time: time, message: message, is_afk: isAfk, is_asleep: isAsleep} = status;
+		return {user_name, time, message, isAfk, isAsleep};
 	} else {
 		return null;
 	}
@@ -495,6 +516,7 @@ function handleWebSocketMessage(data) {
 					if (data?.payload?.event?.message?.text) {
 						data.payload.event.message.text = sanitizeInput(data.payload.event.message.text);
 					}
+					let messageText = data.payload.event.message.text.trim()
 
 					// AFK AND SLEEPING START
 					try {
@@ -502,6 +524,18 @@ function handleWebSocketMessage(data) {
 						const userLogin = data.payload.event.chatter_user_login;
 						const status = checkChatterStatus(userId);
 						
+						const asleepOrAfkUsers = getAfkOrAsleepUsernames();
+						for (const user of asleepOrAfkUsers) {
+							if (messageText.toLowerCase().startsWith(`@${user}`)) {
+								const asleepOrAfkUserStatus = checkChatterStatusByName(user);
+								if (asleepOrAfkUserStatus.isAfk) {
+									sendChatMessage(`${userLogin}, ${user} is currently AFK${asleepOrAfkUserStatus.message}`)
+								} else if (asleepOrAfkUserStatus.isAsleep) {
+									sendChatMessage(`${userLogin}, ${user} is currently sleeping${asleepOrAfkUserStatus.message}`)
+								}
+							}
+						}
+
 						if (status && (status.isAfk || status.isAsleep)) {
 							const timeSince = msToTime(Date.now() - status.time); 
 							
@@ -521,7 +555,6 @@ function handleWebSocketMessage(data) {
 					// AFK AND SLEEPING END
 					
 					// COMMANDS START
-					let messageText = data.payload.event.message.text.trim()
 					try {
                         if (messageText.toLowerCase().startsWith(COMMAND_PREFIX)) {
                             // The message is a command
