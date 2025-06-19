@@ -326,13 +326,17 @@ function parseRemindCommand(messageText) {
 function remindCommand(messageText, data) {
 	let reminderDict = parseRemindCommand(messageText)
 	if (reminderDict === "No match") {
-		return
+		return;
 	}
 	// console.log(reminderDict["target"])
 	let sender = data.payload.event.chatter_user_login.toLowerCase()
 	let target = reminderDict["target"] === "me" ? data.payload.event.chatter_user_login.trim() : reminderDict["target"].toLowerCase()
 	const currentTime = Date.now();
 	const timeToTarget = convertToMs(reminderDict["time"])
+
+	if (reminderDict["message"].length > 400) {
+		return;
+	}
 
 	const insert = db.prepare(`
 		INSERT INTO reminders (sender, target, message, trigger_time, created_at)
@@ -408,7 +412,7 @@ async function getWeather(cityName) {
 }
 
 async function weatherCommand(messageText, data) {
-	const pattern = new RegExp(`\\${COMMAND_PREFIX}weather (\\w+)`);
+	const pattern = new RegExp(`\\${COMMAND_PREFIX}weather (.+)`);
 	const match = messageText.match(pattern);
 
 	if (!match) throw new Error("Weather command, no match in message");
