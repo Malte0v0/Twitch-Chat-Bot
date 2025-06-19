@@ -13,7 +13,7 @@ const VALID_TIME_UNITS_DICT = {
     hours: ["h", "hour", "hours"]
 }
 
-const db = new Database("database.db");
+const db = new Database("database.db", {timeout: 1000});
 
 const BOT_USER_ID = "1225554271"; // This is the User ID of the chat bot
 let OAUTH_TOKEN = process.env.OAUTH_TOKEN;
@@ -36,7 +36,7 @@ var websocketSessionID;
 	// Verify that the authentication is valid
 	await getAuth();
 
-	const REFRESH_INTERVAL_MS = 3 * 60 * 60 * 1000;
+	const REFRESH_INTERVAL_MS = 2 * 60 * 60 * 1000;
 	setInterval(() => {
 		refreshOAuthToken().catch(console.error);
 	}, REFRESH_INTERVAL_MS);
