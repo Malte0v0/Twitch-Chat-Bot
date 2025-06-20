@@ -29,6 +29,11 @@ export class WebSocketService {
 
         websocketClient.on("close", (code, reason) => {
             console.warn("Websocket closed:", code, reason);
+
+            if(code === 1006) {
+                console.log("Attempting to reconnect...");
+                setTimeout(() => this.start(websocketUrl), 5_000);
+            }
         });
 
         websocketClient.on("ping", () => {
