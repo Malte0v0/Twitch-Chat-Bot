@@ -29,7 +29,8 @@ const COMMAND_PREFIX = "$"
 
 const EVENTSUB_WEBSOCKET_URL = "wss://eventsub.wss.twitch.tv/ws";
 
-var websocketSessionID;
+let websocketSessionID;
+let websocketClient;
 
 // Start executing the bot from here
 (async () => {
@@ -45,7 +46,7 @@ var websocketSessionID;
     startReminderScheduler();
 
 	// Start WebSocket client and register handlers
-	const websocketClient = startWebSocketClient();
+	websocketClient = startWebSocketClient();
 })();
 
 // WebSocket will persist the application loop until you exit the program forcefully
@@ -118,13 +119,13 @@ async function refreshOAuthToken() {
 	}
 }
 
-function startWebSocketClient() {
-	let websocketClient = new WebSocket(EVENTSUB_WEBSOCKET_URL);
+function startWebSocketClient(websocketUrl=EVENTSUB_WEBSOCKET_URL) {
+	let websocketClient = new WebSocket(websocketUrl);
 
 	websocketClient.on("error", console.error);
 
 	websocketClient.on("open", () => {
-		console.log("WebSocket connection opened to " + EVENTSUB_WEBSOCKET_URL);
+		console.log("WebSocket connection opened to " + websocketUrl);
 	});
 
 	websocketClient.on("message", (data) => {
@@ -521,7 +522,21 @@ function setUserStatus(messageText, data, statusType) {
 	}
 }
 
+function getHumanTimeFromDate(time) {
+	const year = String(time.getFullYear()).padStart(2, "0");
+	const month = String(time.getMonth()).padStart(2, "0");
+	const date = String(time.getDate()).padStart(2, "0");
+	const hour = String(time.getHours()).padStart(2, "0");
+	const minute = String(time.getMinutes()).padStart(2, "0");
+	const second = String(time.getSeconds()).padStart(2, "0");
+	
+	return `${year}-${month}-${date} ${hour}:${minute}:${second}`;
+}
+
 function handleWebSocketMessage(data) {
+	const time = new Date(data.metadata.message_timestamp);
+	const messageTime = getHumanTimeFromDate(time);
+
 	switch (data.metadata.message_type) {
 		case "session_welcome": // First message you get from the WebSocket server when connecting
 			websocketSessionID = data.payload.session.id; // Register the Session ID it gives us
@@ -529,11 +544,19 @@ function handleWebSocketMessage(data) {
 			// Listen to EventSub, which joins the chatroom from your bot's account
 			registerEventSubListeners();
 			break;
+		case "session_reconnect":
+			const newWebsocketUrl = data.payload.session.reconnect_url;
+
+			// Close the old websocketClient
+			websocketClient.close();
+			// Start a new one
+			websocketClient = startWebSocketClient(newWebsocketUrl);
+			break;
 		case "notification": // An EventSub notification has occurred, such as channel.chat.message
 			switch (data.metadata.subscription_type) {
 				case "channel.chat.message":
 					// First, print the message to the program's console.
-					console.log(`MSG #${data.payload.event.broadcaster_user_login} <${data.payload.event.chatter_user_login}> ${data.payload.event.message.text}`);
+					console.log(`MSG ${messageTime} #${data.payload.event.broadcaster_user_login} <${data.payload.event.chatter_user_login}> ${data.payload.event.message.text}`);
 					// Sanitize the message text
 					if (data?.payload?.event?.message?.text) {
 						data.payload.event.message.text = sanitizeInput(data.payload.event.message.text);
