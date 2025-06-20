@@ -128,6 +128,14 @@ function startWebSocketClient(websocketUrl=EVENTSUB_WEBSOCKET_URL) {
 		console.log("WebSocket connection opened to " + websocketUrl);
 	});
 
+	websocketClient.on("close", (code, reason) => {
+		console.warn("Websocket closed:", code, reason);
+	});
+
+	websocketClient.on("ping", () => {
+		websocketClient.pong();
+	});
+
 	websocketClient.on("message", (data) => {
 		handleWebSocketMessage(JSON.parse(data.toString()));
 	});
