@@ -24,7 +24,7 @@ const WEATHER_API = process.env.WEATHER_API;
 
 // p5vrq 1251520948
 // 527762906
-const CHAT_CHANNEL_USER_ID = "1251520948"; // This is the User ID of the channel that the bot will join and listen to chat messages of
+const CHAT_CHANNEL_USER_ID = process.env.CHAT_CHANNEL_USER_ID; // This is the User ID of the channel that the bot will join and listen to chat messages of
 const COMMAND_PREFIX = "$"
 
 const EVENTSUB_WEBSOCKET_URL = "wss://eventsub.wss.twitch.tv/ws";
