@@ -623,6 +623,12 @@ function handleWebSocketMessage(data) {
 					break;
 			}
 			break;
+		case "session_keepalive":
+			break;
+		case "revocation":
+			break;
+		default:
+			console.warn("Unhandled message type", data.metadata.message_type);
 	}
 }
 
