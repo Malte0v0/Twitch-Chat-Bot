@@ -125,7 +125,6 @@ export class WebSocketService {
                                 }
                             }
                         } catch (error) {
-                            await this._chatService.sendChatMessage('Invalid format. The correct format is: "$remindme in [time] [message]" or "$remind [username] in [time] [message]"')
                             console.error(error);
                         }
                         // COMMANDS END
