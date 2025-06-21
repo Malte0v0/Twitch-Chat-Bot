@@ -34,7 +34,9 @@ export class WebSocketService {
 
             if(code === 1006) {
                 console.log("Attempting to reconnect...");
-                setTimeout(() => this.start(websocketUrl), 5_000);
+                setTimeout(() => {
+                    this._websocketClient = this.start(websocketUrl);
+                }, 5_000);
             }
         });
 
@@ -77,7 +79,7 @@ export class WebSocketService {
                         if (data?.payload?.event?.message?.text) {
                             data.payload.event.message.text = sanitizeInput(data.payload.event.message.text);
                         }
-                        let messageText = data.payload.event.message.text.trim()
+                        let messageText = data.payload.event.message.text.trim();
 
                         // AFK AND SLEEPING START
                         try {
@@ -90,9 +92,9 @@ export class WebSocketService {
                                 if (messageText.toLowerCase().startsWith(`@${user}`)) {
                                     const asleepOrAfkUserStatus = this._statusService.checkChatterStatusByName(user);
                                     if (asleepOrAfkUserStatus.isAfk) {
-                                        await this._chatService.sendChatMessage(`@${userLogin}, ${user} is currently AFK${asleepOrAfkUserStatus.message}`)
+                                        await this._chatService.sendChatMessage(`@${userLogin}, ${user} is currently AFK${asleepOrAfkUserStatus.message}`);
                                     } else if (asleepOrAfkUserStatus.isAsleep) {
-                                        await this._chatService.sendChatMessage(`@${userLogin}, ${user} is currently sleeping${asleepOrAfkUserStatus.message}`)
+                                        await this._chatService.sendChatMessage(`@${userLogin}, ${user} is currently sleeping${asleepOrAfkUserStatus.message}`);
                                     }
                                 }
                             }
