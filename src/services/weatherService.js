@@ -14,7 +14,7 @@ export class WeatherService {
 
         const cityName = match[1];
         const sender = data.payload.event.chatter_user_login.toLowerCase();
-        const {geocode, weatherJson} = await this.getWeather(cityName);
+        const {geocode, data: weatherJson} = await this.getWeather(cityName);
 
         // Parse Json
         const weather = weatherJson.current;
@@ -30,11 +30,11 @@ export class WeatherService {
 
         const city = geocode.name;
         const country = geocode.country;
-        const emoji = this.getWeatherEmoji(weather);
+        const emoji = this.getWeatherEmoji(weather.weather[0]);
         
         await this._chatService.sendChatMessage(`@${sender}, ${city}, ${country} (now): ${emoji} ${temp}°C, feels like ${feelsLike}°C. \
-            UV index:${uvi}. Cloud cover: ${clouds}%. Dew point:${dewPoint}. Visibility:${visibility}. \
-            Wind speed: ${windSpeed} m/s. Humidity: ${humidity}%. Air pressure:${pressure} hPa.`);
+            UV index: ${uvi}. Cloud cover: ${clouds}%. \
+            Wind speed: ${windSpeed} m/s. Humidity: ${humidity}%. Air pressure: ${pressure} hPa.`);
 
     }
 
