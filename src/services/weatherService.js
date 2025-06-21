@@ -14,30 +14,37 @@ export class WeatherService {
 
         const cityName = match[1];
         const sender = data.payload.event.chatter_user_login.toLowerCase();
-        const weatherJson = await this.getWeather(cityName);
+        const {geocode, weatherJson} = await this.getWeather(cityName);
 
-        const weather = weatherJson["main"];
-        const temp = weather["temp"];
-        const feelsLike = weather["feels_like"];
-        const humidity = weather["humidity"];
+        // Parse Json
+        const weather = weatherJson.current;
+        const temp = weather.temp;
+        const feelsLike = weather.feels_like;
+        const pressure = weather.pressure;
+        const humidity = weather.humidity;
+        const dewPoint = weather.dew_point
+        const uvi = weather.uvi;
+        const clouds = weather.clouds;
+        const visibility = weather.visibility;
+        const windSpeed = weather.wind_speed;
 
-        const clouds = weatherJson["clouds"]["all"]; // implement cloud emoji getting
-        const windSpeed = weatherJson["wind"]["speed"]
-        const city = weatherJson["name"];
-        const country = weatherJson["sys"]["country"];
-        const emoji = this.getWeatherEmoji(weatherJson);
+        const city = geocode.name;
+        const country = geocode.country;
+        const emoji = this.getWeatherEmoji(weather);
         
-        await this._chatService.sendChatMessage(`@${sender}, ${city}, ${country} (now): ${emoji} ${temp}°C, feels like ${feelsLike}°C. Cloud cover: ${clouds}%. Wind speed: ${windSpeed} m/s. Humidity: ${humidity}%`)
+        await this._chatService.sendChatMessage(`@${sender}, ${city}, ${country} (now): ${emoji} ${temp}°C, feels like ${feelsLike}°C. \
+            UV index:${uvi}. Cloud cover: ${clouds}%. Dew point:${dewPoint}. Visibility:${visibility}. \
+            Wind speed: ${windSpeed} m/s. Humidity: ${humidity}%. Air pressure:${pressure} hPa.`);
 
     }
 
-    getWeatherEmoji(weatherJson) {
-        if (!weatherJson || !weatherJson.weather || !weatherJson.weather[0]) {
+    getWeatherEmoji(weather) {
+        if (!weather || !weather.id || !weather.main) {
             return "❓";
         }
 
-        const main = weatherJson.weather[0].main.toLowerCase();
-        const id = weatherJson.weather[0].id;
+        const main = weather.main.toLowerCase();
+        const id = weather.id;
 
         switch (main) {
             case "clear":
@@ -73,13 +80,31 @@ export class WeatherService {
 
     async getWeather(cityName) {
         try {
-            const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${this._weatherApi}&units=metric`);
+            const geocode = await this.getGeocode(cityName);
+            const response = await fetch(`https://api.openweathermap.org/data/3.0/onecall?lat=${geocode.lat}&lon=${geocode.lon}&appid=${this._weatherApi}&units=metric`);
             if (!response.ok) throw new Error("Network error:" + response.statusText);
-            const data = await response.json()
+            const data = await response.json();
 
-            return data
+            return {geocode, data};
         } catch (error) {
-            console.error(error)
+            console.error(error);
+        }
+    }
+
+    async getGeocode(cityName) {
+        try {
+            const response = await fetch(`http://api.openweathermap.org/geo/1.0/direct?q=${cityName}&limit=1&appid=${this._weatherApi}`);
+            if (!response.ok) throw new Error("Weather API geocoding network error:" + response.statusText);
+            const data = await response.json();
+
+            const lat = data[0].lat;
+            const lon = data[0].lon;
+            const name = data[0].name;
+            const country = data[0].country;
+
+            return {lat, lon, name, country};
+        } catch (error) {
+            console.error(error);
         }
     }
 }
