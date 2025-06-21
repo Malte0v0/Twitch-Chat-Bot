@@ -84,10 +84,10 @@ export class StatusService {
 
         if (statusType === "afk") {
             this.toggleAfkStatus(userId, message);
-            await this._chatService.sendChatMessage(`${userLogin} is now AFK${message}`);
+            await this._chatService.sendChatMessage(`@${userLogin} is now AFK${message}`);
         } else if (statusType === "sleep") {
             this.toggleAsleepStatus(userId, message);
-            await this._chatService.sendChatMessage(`${userLogin} is now sleeping${message}`);
+            await this._chatService.sendChatMessage(`@${userLogin} is now sleeping${message}`);
         }
     }
 }

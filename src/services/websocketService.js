@@ -21,7 +21,9 @@ export class WebSocketService {
     start(websocketUrl=this._eventsubWebsocketUrl) {
         let websocketClient = new WebSocket(websocketUrl);
 
-        websocketClient.on("error", console.error);
+        websocketClient.on("error", (error) => {
+            console.error(error);
+        });
 
         websocketClient.on("open", () => {
             console.log("WebSocket connection opened to " + websocketUrl);
@@ -88,9 +90,9 @@ export class WebSocketService {
                                 if (messageText.toLowerCase().startsWith(`@${user}`)) {
                                     const asleepOrAfkUserStatus = this._statusService.checkChatterStatusByName(user);
                                     if (asleepOrAfkUserStatus.isAfk) {
-                                        await this._chatService.sendChatMessage(`${userLogin}, ${user} is currently AFK${asleepOrAfkUserStatus.message}`)
+                                        await this._chatService.sendChatMessage(`@${userLogin}, ${user} is currently AFK${asleepOrAfkUserStatus.message}`)
                                     } else if (asleepOrAfkUserStatus.isAsleep) {
-                                        await this._chatService.sendChatMessage(`${userLogin}, ${user} is currently sleeping${asleepOrAfkUserStatus.message}`)
+                                        await this._chatService.sendChatMessage(`@${userLogin}, ${user} is currently sleeping${asleepOrAfkUserStatus.message}`)
                                     }
                                 }
                             }
@@ -100,10 +102,10 @@ export class WebSocketService {
                                 
                                 if (status.isAfk) {
                                     this._statusService.toggleAfkStatus(userId);
-                                    await this._chatService.sendChatMessage(`${userLogin} is no longer AFK${status.message} (${timeSince})`);
+                                    await this._chatService.sendChatMessage(`@${userLogin} is no longer AFK${status.message} (${timeSince})`);
                                 } else if (status.isAsleep) {
                                     this._statusService.toggleAsleepStatus(userId);
-                                    await this._chatService.sendChatMessage(`${userLogin} is no longer sleeping${status.message} (${timeSince})`);
+                                    await this._chatService.sendChatMessage(`@${userLogin} is no longer sleeping${status.message} (${timeSince})`);
                                 }
                                 break;
                             }

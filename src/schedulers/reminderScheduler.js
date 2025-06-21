@@ -22,9 +22,9 @@ export class ReminderScheduler {
                 let timeSinceSet = msToHuman(now - reminder.created_at)
 
                 if (reminder.sender === reminder.target) {
-                    await this._chatService.sendChatMessage(`${reminder.target}, reminder from yourself (${timeSinceSet} ago): ${reminder.message}`);
+                    await this._chatService.sendChatMessage(`@${reminder.target}, reminder from yourself (${timeSinceSet} ago): ${reminder.message}`);
                 } else {
-                    await this._chatService.sendChatMessage(`${reminder.target}, reminder from ${reminder.sender} (${timeSinceSet} ago): ${reminder.message}`);
+                    await this._chatService.sendChatMessage(`@${reminder.target}, reminder from ${reminder.sender} (${timeSinceSet} ago): ${reminder.message}`);
                 }
     
                 this._db.prepare(`
@@ -93,9 +93,9 @@ export class ReminderScheduler {
         // Let the user know that a reminder has been set
         const timeUntil = msToHuman(timeToTarget)
         if (sender === target){
-            await this._chatService.sendChatMessage(`${sender}, I will remind you in ${timeUntil}`)
+            await this._chatService.sendChatMessage(`@${sender}, I will remind you in ${timeUntil}`)
         } else {
-            await this._chatService.sendChatMessage(`${sender}, I will remind ${target} in ${timeUntil}`)
+            await this._chatService.sendChatMessage(`@${sender}, I will remind ${target} in ${timeUntil}`)
         }
     }
 }

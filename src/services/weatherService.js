@@ -27,7 +27,7 @@ export class WeatherService {
         const country = weatherJson["sys"]["country"];
         const emoji = this.getWeatherEmoji(weatherJson);
         
-        await this._chatService.sendChatMessage(`${sender}, ${city}, ${country} (now): ${emoji} ${temp}°C, feels like ${feelsLike}°C. Cloud cover: ${clouds}%. Wind speed: ${windSpeed} m/s. Humidity: ${humidity}%`)
+        await this._chatService.sendChatMessage(`@${sender}, ${city}, ${country} (now): ${emoji} ${temp}°C, feels like ${feelsLike}°C. Cloud cover: ${clouds}%. Wind speed: ${windSpeed} m/s. Humidity: ${humidity}%`)
 
     }
 
