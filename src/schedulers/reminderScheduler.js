@@ -74,7 +74,7 @@ export class ReminderScheduler {
         `).all();
     }
 
-    setReminderDelivered (reminder) {
+    setReminderDelivered(reminder) {
         this._db.prepare(`
             UPDATE reminders SET delivered = 1 WHERE id = ?
         `).run(reminder.id);
@@ -135,21 +135,23 @@ export class ReminderScheduler {
             INSERT INTO reminders (sender, target, message, trigger_time, created_at)
             VALUES (?,?,?,?,?)
         `);
-        insert.run(
+        const result = insert.run(
             sender,
             target,
             reminderDict["message"],
             currentTime + timeToTarget,
             currentTime
         )
-
+        
         const reminder = {
+            id: result.lastInsertRowid,
             sender,
             target,
             message: reminderDict.message,
             trigger_time: currentTime + timeToTarget,
             created_at: currentTime,
         }
+
         this.scheduleReminder(timeToTarget, reminder);
 
         // Let the user know that a reminder has been set
