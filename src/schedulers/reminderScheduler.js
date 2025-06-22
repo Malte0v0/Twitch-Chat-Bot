@@ -5,34 +5,67 @@ export class ReminderScheduler {
         this._chatService = chatService;
         this._db = db;
         this._commandPrefix = commandPrefix;
+
+        this._timeouts = [];
+    }
+
+    restart() {
+        this.start();
     }
 
     start() {
-        setInterval(async () => {
-            const now = Date.now();
-    
-            // Fetch due, undelivered reminders
-            const reminders = this._db.prepare(`
-                SELECT * FROM reminders
-                WHERE delivered = 0 AND trigger_time <= ?
-            `).all(now);
-    
-            // Send each reminder and mark as delivered
-            for (const reminder of reminders) {
-                let timeSinceSet = msToHuman(now - reminder.created_at)
+        this._timeouts.forEach((timeout) => {clearTimeout(timeout)});
+        this._timeouts = [];
 
-                if (reminder.sender === reminder.target) {
-                    await this._chatService.sendChatMessage(`@${reminder.target}, reminder from yourself (${timeSinceSet} ago): ${reminder.message}`);
-                } else {
-                    await this._chatService.sendChatMessage(`@${reminder.target}, reminder from ${reminder.sender} (${timeSinceSet} ago): ${reminder.message}`);
-                }
-    
-                this._db.prepare(`
-                    UPDATE reminders SET delivered = 1 WHERE id = ?
-                `).run(reminder.id);
-        
+        this._reminders = this.undeliveredReminders;
+
+        const now = Date.now();
+
+        this._reminders.forEach((reminder) => {
+            const delay = reminder.trigger_time - now;
+
+            if (delay <= 0) {
+                this.sendReminder(reminder)
+                    .catch((error) => {console.error(error)});
+                return;
             }
-        }, 10_000);
+
+            const timeout = setTimeout(async () => {
+                try {
+                    await this.sendReminder(reminder);
+                } catch (error) {
+                    console.error(error);
+                }
+            }, delay);
+            this._timeouts.push(timeout);
+        });
+
+    }
+
+    async sendReminder(reminder) {
+        const now = Date.now();
+
+        let timeSinceSet = msToHuman(now - reminder.created_at)
+        if (reminder.sender === reminder.target) {
+            await this._chatService.sendChatMessage(`@${reminder.target}, reminder from yourself (${timeSinceSet} ago): ${reminder.message}`);
+        } else {
+            await this._chatService.sendChatMessage(`@${reminder.target}, reminder from ${reminder.sender} (${timeSinceSet} ago): ${reminder.message}`);
+        }
+
+        this.setReminderDelivered(reminder);
+    }
+
+    get undeliveredReminders() {
+        return this._db.prepare(`
+            SELECT * FROM reminders
+            WHERE delivered = 0
+        `).all();
+    }
+
+    setReminderDelivered (reminder) {
+        this._db.prepare(`
+            UPDATE reminders SET delivered = 1 WHERE id = ?
+        `).run(reminder.id);
     }
     
     parseRemindCommand(messageText) {
@@ -89,6 +122,7 @@ export class ReminderScheduler {
             currentTime + timeToTarget,
             currentTime
         )
+        this.restart();
 
         // Let the user know that a reminder has been set
         const timeUntil = msToHuman(timeToTarget)
