@@ -48,7 +48,7 @@ export class EarthquakeService {
 
                 const localTime = getHumanTimeFromDate(time);
 
-                if (action === "create" && mag >= 5) {
+                if (action === "create" && mag >= 8.5) {
                 await this._chatService.sendChatMessage(`Alarm 🗻 ALERT Magnitude ${mag} earthquake in ${region}`);
                 }
         }

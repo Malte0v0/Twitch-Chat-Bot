@@ -12,13 +12,16 @@ export class WebSocketService {
 
         this._commandPrefix = commandPrefix;
         
-        this._eventsubWebsocketUrl = "wss://eventsub.wss.twitch.tv/ws";
+        this._websocketUrl = "wss://eventsub.wss.twitch.tv/ws";
 
         this._websocketSessionID = null;
-        this._websocketClient = this.start(this._eventsubWebsocketUrl);
+        this._websocketClient = this.start(this._websocketUrl);
+
+        this._lastKeepalive = Date.now();
+        this._keepaliveTimeoutMilliseconds = 10 * 1000;
     }
 
-    start(websocketUrl=this._eventsubWebsocketUrl) {
+    start(websocketUrl=this._websocketUrl) {
         let websocketClient = new WebSocket(websocketUrl);
 
         websocketClient.on("error", (error) => {
@@ -35,7 +38,7 @@ export class WebSocketService {
             if(code === 1006) {
                 console.log("Attempting to reconnect...");
                 setTimeout(() => {
-                    this._websocketClient = this.start(websocketUrl);
+                    this.reconnect(websocketUrl);
                 }, 5_000);
             }
         });
@@ -44,31 +47,45 @@ export class WebSocketService {
             websocketClient.pong();
         });
 
-        websocketClient.on("message", (data) => {
-            this.handleMessage(JSON.parse(data.toString()));
+        websocketClient.on("message", async (data) => {
+            try {
+                await this.handleMessage(JSON.parse(data.toString()));
+            } catch (error) {
+                console.error("Error handling Twitch websocket message:", error);
+            }
         });
 
         return websocketClient;
     }
 
+    reconnect(websocketUrl=this._websocketUrl) {
+        clearInterval(this._keepaliveInterval);
+        // Close the old websocketClient
+        this._websocketClient.close();
+        // Start a new one
+        this._websocketClient = this.start(websocketUrl)
+    }
+
     async handleMessage(data) {
+        this._lastKeepalive = Date.now();
+        
         const time = new Date(data.metadata.message_timestamp);
         const messageTime = getHumanTimeFromDate(time);
 
         switch (data.metadata.message_type) {
             case "session_welcome": // First message you get from the WebSocket server when connecting
                 this._websocketSessionID = data.payload.session.id; // Register the Session ID it gives us
+                this._keepaliveTimeoutMilliseconds = data.payload.session.keepalive_timeout_seconds * 1000;
 
                 // Listen to EventSub, which joins the chatroom from your bot's account
                 await this.registerEventSubListeners();
+
+                // Start checking for dead connection
+                this.setupKeepaliveWatcher();
                 break;
             case "session_reconnect":
-                const newWebsocketUrl = data.payload.session.reconnect_url;
-
-                // Close the old websocketClient
-                this._websocketClient.close();
-                // Start a new one
-                this._websocketClient = this.start(newWebsocketUrl);
+                this._websocketUrl = data.payload.session.reconnect_url;
+                this.reconnect();
                 break;
             case "notification": // An EventSub notification has occurred, such as channel.chat.message
                 switch (data.metadata.subscription_type) {
@@ -182,4 +199,16 @@ export class WebSocketService {
         }
     }
 
+    setupKeepaliveWatcher() {
+        if (this._keepaliveInterval) {
+            clearInterval(this._keepaliveInterval);
+        }
+
+        this._keepaliveInterval = setInterval(() => {
+            if ((Date.now() - this._lastKeepalive) > this._keepaliveTimeoutMilliseconds+5000) { // +5000 just to add a 5 second buffer
+                console.warn("Twitch websocket connection presumed dead, reconnecting...");
+                this.reconnect();
+            }
+        }, this._keepaliveTimeoutMilliseconds);
+    }
 }
