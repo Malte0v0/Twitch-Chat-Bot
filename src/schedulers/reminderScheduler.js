@@ -45,15 +45,15 @@ export class ReminderScheduler {
     async sendReminder(reminder) {
         const now = Date.now();
 
-        if (reminder.message === "") {
+        if (reminder.message !== "") {
             reminder.message = ": " + reminder.message;
         }
 
         let timeSinceSet = msToHuman(now - reminder.created_at)
         if (reminder.sender === reminder.target) {
-            await this._chatService.sendChatMessage(`@${reminder.target}, reminder from yourself (${timeSinceSet} ago): ${reminder.message}`);
+            await this._chatService.sendChatMessage(`@${reminder.target}, reminder from yourself (${timeSinceSet} ago)${reminder.message}`);
         } else {
-            await this._chatService.sendChatMessage(`@${reminder.target}, reminder from ${reminder.sender} (${timeSinceSet} ago): ${reminder.message}`);
+            await this._chatService.sendChatMessage(`@${reminder.target}, reminder from ${reminder.sender} (${timeSinceSet} ago)${reminder.message}`);
         }
 
         this.setReminderDelivered(reminder);
