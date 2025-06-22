@@ -75,6 +75,9 @@ export class ReminderScheduler {
     parseRemindCommand(messageText) {
         const firstPattern = new RegExp(`\\${this._commandPrefix}remind(?:me|\\s+(\\w+))\\s+in\\s+((?:\\d+\\s*\\w+\\s*)+)\\s+(.+)`);
         const secondPattern = new RegExp(`\\${this._commandPrefix}remind(?:me|\\s+(\\w+))\\s+(.+)in\\s+((?:\\d+\\s*\\w+\\s*)+)`);
+        const thirdPatternNoMessage = new RegExp(`\\${this._commandPrefix}remind(?:me|\\s+(\\w+))\\s+in\\s+((?:\\d+\\s*\\w+\\s*)+)`)
+
+        "\$remind(?:me|\s+(\w+))\s+in\s+((?:\d+\s*\w+\s*)+)"
 
         let match;
         let time, message;
@@ -85,6 +88,9 @@ export class ReminderScheduler {
         } else if (match = messageText.match(secondPattern)) {
             time = match[3];
             message = match[2]
+        } else if (match = messageText.match(thirdPatternNoMessage)) {
+            time = match[2];
+            message = "";
         }
 
         if (!match) {
