@@ -1,5 +1,7 @@
 import { msToHuman, convertToMs } from "../utils/timeUtils.js";
 
+const MAX_32_BIT = 2147483647;
+
 export class ReminderScheduler {
     constructor(chatService, db, commandPrefix="$") {
         this._chatService = chatService;
@@ -9,13 +11,8 @@ export class ReminderScheduler {
         this._timeouts = [];
     }
 
-    restart() {
-        this.start();
-    }
-
     start() {
         this._timeouts.forEach((timeout) => {clearTimeout(timeout)});
-        this._timeouts = [];
 
         this._reminders = this.undeliveredReminders;
 
@@ -23,27 +20,39 @@ export class ReminderScheduler {
 
         this._reminders.forEach((reminder) => {
             const delay = reminder.trigger_time - now;
-
+            console.log(delay, delay <= 0);
             if (delay <= 0) {
                 this.sendReminder(reminder)
                     .catch((error) => {console.error(error)});
                 return;
             }
 
-            const timeout = setTimeout(async () => {
+            this.scheduleReminder(delay, reminder);
+        });
+    }
+
+    scheduleReminder(delay, reminder) {
+        const timeout = setTimeout(async () => {
+            if (delay > MAX_32_BIT) {
+                this.scheduleReminder(delay - MAX_32_BIT, reminder);
+            } else {
                 try {
                     await this.sendReminder(reminder);
                 } catch (error) {
                     console.error(error);
                 }
-            }, delay);
-            this._timeouts.push(timeout);
-        });
+            }
 
+        }, Math.min(delay, MAX_32_BIT));
+        this._timeouts.push(timeout);
     }
 
     async sendReminder(reminder) {
         const now = Date.now();
+        const delay = reminder.trigger_time - now;
+        if (delay > 0) {
+            return;
+        }
 
         if (reminder.message !== "") {
             reminder.message = ": " + reminder.message;
@@ -97,7 +106,7 @@ export class ReminderScheduler {
             return "No match";
         }
 
-        message = undefined ? "" : message;
+        message = message === undefined ? "" : message;
 
         const targetUser = match[1] || "me";
 
@@ -134,7 +143,15 @@ export class ReminderScheduler {
             currentTime + timeToTarget,
             currentTime
         )
-        this.restart();
+
+        const reminder = {
+            sender,
+            target,
+            message: reminderDict.message,
+            trigger_time: currentTime + timeToTarget,
+            created_at: currentTime,
+        }
+        this.scheduleReminder(timeToTarget, reminder);
 
         // Let the user know that a reminder has been set
         const timeUntil = msToHuman(timeToTarget)
