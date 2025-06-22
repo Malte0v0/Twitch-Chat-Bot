@@ -45,6 +45,10 @@ export class ReminderScheduler {
     async sendReminder(reminder) {
         const now = Date.now();
 
+        if (reminder.message === "") {
+            reminder.message = ": " + reminder.message;
+        }
+
         let timeSinceSet = msToHuman(now - reminder.created_at)
         if (reminder.sender === reminder.target) {
             await this._chatService.sendChatMessage(`@${reminder.target}, reminder from yourself (${timeSinceSet} ago): ${reminder.message}`);
@@ -86,6 +90,8 @@ export class ReminderScheduler {
         if (!match) {
             return "No match";
         }
+
+        message = undefined ? "" : message;
 
         const targetUser = match[1] || "me";
 
