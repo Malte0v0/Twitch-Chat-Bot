@@ -20,7 +20,6 @@ export class ReminderScheduler {
 
         this._reminders.forEach((reminder) => {
             const delay = reminder.trigger_time - now;
-            console.log(delay, delay <= 0);
             if (delay <= 0) {
                 this.sendReminder(reminder)
                     .catch((error) => {console.error(error)});
