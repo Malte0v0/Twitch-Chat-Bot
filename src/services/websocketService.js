@@ -104,10 +104,10 @@ export class WebSocketService {
                         try {
                             if (messageText.toLowerCase().startsWith(this._commandPrefix)) {
                                 // The message is a command
-                                const pattern = new RegExp(`^(?:\\${this._commandPrefix})(\w+)`);
+                                const pattern = new RegExp(`^(?:\\${this._commandPrefix})(\\w+)`);
                                 const command = messageText.toLowerCase().match(pattern)[1];
 
-                                await this._commands.handleCommand(command, data);
+                                await this._commands.handleCommand(command, messageText, data);
                             }
                         } catch (error) {
                             console.error(error);

@@ -12,7 +12,7 @@ export class Commands {
         this._weatherService = new WeatherService(commandPrefix, chatService);
     }
 
-    async handleCommand(command, data) {
+    async handleCommand(command, messageText, data) {
         switch (command) {
             case "remind": case "remindme":
                 await this._reminderScheduler.remindCommand(messageText, data);
