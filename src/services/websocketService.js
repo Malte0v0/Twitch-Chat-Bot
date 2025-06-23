@@ -1,4 +1,4 @@
-import { getHumanTimeFromDate, msToHuman } from "../utils/timeUtils.js";
+import { getHumanTimeFromDate } from "../utils/timeUtils.js";
 import { sanitizeInput } from "../utils/inputUtils.js";
 import WebSocket from "ws";
 
