@@ -1,6 +1,6 @@
-import { ReminderScheduler } from "./src/schedulers/reminderScheduler.js";
-import { StatusService } from "./src/services/statusService.js";
-import { WeatherService } from "./src/services/weatherService.js";
+import { ReminderScheduler } from "../schedulers/reminderScheduler.js";
+import { StatusService } from "../services/statusService.js";
+import { WeatherService } from "../services/weatherService.js";
 import { msToHuman } from "../utils/timeUtils.js";
 
 export class Commands {
