@@ -1,24 +1,24 @@
 import { getHumanTimeFromDate, msToHuman } from "../utils/timeUtils.js";
 import { sanitizeInput } from "../utils/inputUtils.js";
+import { Commands } from "../commands/index.js";
 import WebSocket from "ws";
 
 export class WebSocketService {
-    constructor(authService, chatService, statusService, reminderScheduler, weatherService, commandPrefix) {
+    constructor(authService, chatService, statusService, commandPrefix) {
         this._authService = authService;
         this._chatService = chatService;
         this._statusService = statusService;
-        this._reminderScheduler = reminderScheduler;
-        this._weatherService = weatherService;
 
         this._commandPrefix = commandPrefix;
         
         this._websocketUrl = "wss://eventsub.wss.twitch.tv/ws";
-
         this._websocketSessionID = null;
         this._websocketClient = this.start(this._websocketUrl);
 
         this._lastKeepalive = Date.now();
         this._keepaliveTimeoutMilliseconds = 10 * 1000;
+
+        this._commands = new Commands(this._chatService);
     }
 
     start(websocketUrl=this._websocketUrl) {
@@ -99,56 +99,17 @@ export class WebSocketService {
                         let messageText = data.payload.event.message.text.trim();
 
                         // AFK AND SLEEPING START
-                        try {
-                            const userId = data.payload.event.chatter_user_id;
-                            const userLogin = data.payload.event.chatter_user_login;
-                            const status = this._statusService.checkChatterStatus(userId);
-                            
-                            const asleepOrAfkUsers = this._statusService.getAfkOrAsleepUsernames();
-                            for (const user of asleepOrAfkUsers) {
-                                if (messageText.toLowerCase().startsWith(`@${user}`)) {
-                                    const asleepOrAfkUserStatus = this._statusService.checkChatterStatusByName(user);
-                                    if (asleepOrAfkUserStatus.isAfk) {
-                                        await this._chatService.sendChatMessage(`@${userLogin}, ${user} is currently AFK${asleepOrAfkUserStatus.message}`);
-                                    } else if (asleepOrAfkUserStatus.isAsleep) {
-                                        await this._chatService.sendChatMessage(`@${userLogin}, ${user} is currently sleeping${asleepOrAfkUserStatus.message}`);
-                                    }
-                                }
-                            }
-
-                            if (status && (status.isAfk || status.isAsleep)) {
-                                const timeSince = msToHuman(Date.now() - status.time); 
-                                
-                                if (status.isAfk) {
-                                    this._statusService.toggleAfkStatus(userId);
-                                    await this._chatService.sendChatMessage(`@${userLogin} is no longer AFK${status.message} (${timeSince})`);
-                                } else if (status.isAsleep) {
-                                    this._statusService.toggleAsleepStatus(userId);
-                                    await this._chatService.sendChatMessage(`@${userLogin} is no longer sleeping${status.message} (${timeSince})`);
-                                }
-                                break;
-                            }
-                        } catch (error) {
-                            console.error(error);
-                            break;
-                        }
+                        await this._commands.handleAfkAsleep(messageText, data);
                         // AFK AND SLEEPING END
                         
                         // COMMANDS START
                         try {
                             if (messageText.toLowerCase().startsWith(this._commandPrefix)) {
                                 // The message is a command
-                                if (messageText.startsWith(this._commandPrefix + "remind")) {
-                                    await this._reminderScheduler.remindCommand(messageText, data);
-                                } else if (messageText.startsWith(this._commandPrefix + "weather")) {
-                                    await this._weatherService.weatherCommand(messageText, data).catch(error => {
-                                        console.error("Weather command failed:", error);
-                                    })
-                                } else if (messageText.startsWith(this._commandPrefix + "afk")) {
-                                    await this._statusService.setUserStatus(messageText, data, "afk");
-                                } else if (messageText.startsWith(this._commandPrefix + "sleep")) {
-                                    await this._statusService.setUserStatus(messageText, data, "sleep");
-                                }
+                                const pattern = new RegExp(`^(?:\\${this._commandPrefix})(\w+)`);
+                                const command = messageText.toLowerCase().match(pattern)[1];
+
+                                await this._commands.handleCommand(command, data);
                             }
                         } catch (error) {
                             console.error(error);
