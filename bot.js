@@ -38,22 +38,3 @@ async function main() {
 }
 
 main().catch(console.error);
-
-
-
-// // Start executing the bot from here
-// (async () => {
-// 	// Verify that the authentication is valid
-// 	await getAuth();
-
-// 	const REFRESH_INTERVAL_MS = 2 * 60 * 60 * 1000;
-// 	setInterval(() => {
-// 		refreshOAuthToken().catch(console.error);
-// 	}, REFRESH_INTERVAL_MS);
-
-//     initializeDatabase();
-//     startReminderScheduler();
-
-// 	// Start WebSocket client and register handlers
-// 	websocketClient = startWebSocketClient();
-// })();
