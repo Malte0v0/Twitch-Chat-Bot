@@ -9,6 +9,9 @@ export class ReminderScheduler {
         this._commandPrefix = commandPrefix;
 
         this._timeouts = [];
+
+        // Start the scheduler
+        this.start();
     }
 
     start() {

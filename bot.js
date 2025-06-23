@@ -23,8 +23,6 @@ async function main() {
 	const earthquakeService = new EarthquakeService(chatService);
 	const websocketService = new WebSocketService(authService, chatService, commandPrefix);
 
-	reminderScheduler.start();
-	
 	setInterval(() => {
 		authService.refreshOAuthToken().catch(console.error);
 	}, REFRESH_INTERVAL_MS);
