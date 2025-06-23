@@ -14,12 +14,19 @@ export class WeatherService {
 
         const cityName = match[1];
         const sender = data.payload.event.chatter_user_login.toLowerCase();
-        const {geocode, data: weatherJson} = await this.getWeather(cityName);
+        const weatherReturn = await this.getWeather(cityName);
+        if (!weatherReturn) {
+            return;
+        }
+        const geocode = weatherReturn.geocode;
+        const weatherJson = weatherReturn.data;
 
         // Parse Json
         const weather = weatherJson.current;
         const temp = weather.temp;
+        const tempF = ((temp * 9/5) + 32).toFixed(2);
         const feelsLike = weather.feels_like;
+        const feelsLikeF = ((feelsLike * 9/5) + 32).toFixed(2);
         const pressure = weather.pressure;
         const humidity = weather.humidity;
         const dewPoint = weather.dew_point
@@ -32,7 +39,7 @@ export class WeatherService {
         const country = geocode.country;
         const emoji = this.getWeatherEmoji(weather.weather[0]);
         
-        await this._chatService.sendChatMessage(`@${sender}, ${city}, ${country} (now): ${emoji} ${temp}°C, feels like ${feelsLike}°C. \
+        await this._chatService.sendChatMessage(`@${sender}, ${city}, ${country} (now): ${emoji} ${temp}°C (${tempF}°F), feels like ${feelsLike}°C (${feelsLikeF}°F). \
             UV index: ${uvi}. Cloud cover: ${clouds}%. \
             Wind speed: ${windSpeed} m/s. Humidity: ${humidity}%. Air pressure: ${pressure} hPa.`);
 
@@ -81,13 +88,16 @@ export class WeatherService {
     async getWeather(cityName) {
         try {
             const geocode = await this.getGeocode(cityName);
+            if (!geocode) {
+                return;
+            }
             const response = await fetch(`https://api.openweathermap.org/data/3.0/onecall?lat=${geocode.lat}&lon=${geocode.lon}&appid=${this._weatherApi}&units=metric`);
             if (!response.ok) throw new Error("Network error:" + response.statusText);
             const data = await response.json();
 
             return {geocode, data};
         } catch (error) {
-            console.error(error);
+            console.warn(error);
         }
     }
 
@@ -104,7 +114,7 @@ export class WeatherService {
 
             return {lat, lon, name, country};
         } catch (error) {
-            console.error(error);
+            await this._chatService.sendChatMessage("Could not find location", cityName);
         }
     }
 }
