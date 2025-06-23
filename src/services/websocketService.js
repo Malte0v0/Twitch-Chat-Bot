@@ -1,13 +1,12 @@
 import { getHumanTimeFromDate, msToHuman } from "../utils/timeUtils.js";
 import { sanitizeInput } from "../utils/inputUtils.js";
-import { Commands } from "../commands/index.js";
 import WebSocket from "ws";
 
 export class WebSocketService {
-    constructor(authService, chatService, statusService, commandPrefix) {
+    constructor(authService, chatService, commands, commandPrefix) {
         this._authService = authService;
         this._chatService = chatService;
-        this._statusService = statusService;
+        this._commands = commands;
 
         this._commandPrefix = commandPrefix;
         
@@ -18,7 +17,6 @@ export class WebSocketService {
         this._lastKeepalive = Date.now();
         this._keepaliveTimeoutMilliseconds = 10 * 1000;
 
-        this._commands = new Commands(this._chatService);
     }
 
     start(websocketUrl=this._websocketUrl) {

@@ -4,7 +4,7 @@ import { WeatherService } from "../services/weatherService.js";
 import { msToHuman } from "../utils/timeUtils.js";
 
 export class Commands {
-    constructor(chatService) {
+    constructor(chatService, db) {
         this._chatService = chatService;
 
         this._reminderScheduler = new ReminderScheduler(chatService, db, commandPrefix);

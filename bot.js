@@ -6,6 +6,7 @@ import { AuthService } from "./src/services/authService.js"
 import { WebSocketService } from "./src/services/websocketService.js";
 import { ChatService } from "./src/services/chatService.js";
 import { EarthquakeService } from "./src/services/earthquakeService.js";
+import { Commands } from "./src/commands/index.js";
 
 
 const db = new Database("database.db", {timeout: 1000});
@@ -21,7 +22,8 @@ async function main() {
 	await authService.getAuth();
 	const chatService = new ChatService(authService);
 	const earthquakeService = new EarthquakeService(chatService);
-	const websocketService = new WebSocketService(authService, chatService, commandPrefix);
+	const commands = new Commands(chatService, db);
+	const websocketService = new WebSocketService(authService, chatService, commands, commandPrefix);
 
 	setInterval(() => {
 		authService.refreshOAuthToken().catch(console.error);
