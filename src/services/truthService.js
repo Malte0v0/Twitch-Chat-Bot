@@ -10,10 +10,10 @@ export class TruthService {
     }
 
     getCleanText(data) {
-        const message = data.data.streamPostCreated.text
+        let message = data.data.streamPostCreated.text
 
-        urlRegex = new RegExp("https?:\\/\\/(www\\.)?(?:truthsocial){1,256}\\.[a-zA-Z0-9()]{1,6}\\b[-a-zA-Z0-9()@:%_\\+.~#?&//=]*");
-        postTypeRegex = new RegExp("Type:\\s+(\\w+)");
+        const urlRegex = new RegExp("https?:\\/\\/(www\\.)?(?:truthsocial){1,256}\\.[a-zA-Z0-9()]{1,6}\\b[-a-zA-Z0-9()@:%_\\+.~#?&//=]*");
+        const postTypeRegex = new RegExp("Type:\\s+(\\w+)");
 
         message = message.replace(urlRegex, "");
         message = message.replace(postTypeRegex, "")
