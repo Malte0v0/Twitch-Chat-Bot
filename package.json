@@ -14,7 +14,6 @@
     "dotenv": "^16.5.0",
     "graphql-ws": "^6.0.5",
     "rss-parser": "^3.13.0",
-    "sockjs-client": "^1.6.1",
     "ws": "^8.18.2"
   }
 }

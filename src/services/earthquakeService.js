@@ -1,59 +1,58 @@
-import SockJS from "sockjs-client";
+import WebSocket from "ws";
 import { getHumanTimeFromDate } from "../utils/timeUtils.js"
 
 export class EarthquakeService {
     constructor(chatService) {
         this._chatService = chatService;
-        this._websocketUrl = "https://www.seismicportal.eu/standing_order"
-        this._emulatedWebsocket = this.start();
+        this._websocketUrl = "wss://www.seismicportal.eu/standing_order/websocket"
+        this._websocketClient = this.start();
     }
 
     start() {
-        let emulatedWebsocket = new SockJS(this._websocketUrl);
+        let websocketClient = new WebSocket(this._websocketUrl);
 
-        emulatedWebsocket.onopen = () => {
+        websocketClient.on("open", () => {
             console.log("WebSocket connection opened to " + this._websocketUrl);
-        }
+        });
 
-        emulatedWebsocket.onmessage = async (data) => {
+        websocketClient.on("message", async (data) => {
             try {
-                await this.handleMessage(data);
+                await this.handleMessage(JSON.parse(data.toString()));
             } catch (error) {
                 console.error("Error in earthquake message handler:", error);
             }
-        }
+        });
 
-        emulatedWebsocket.onerror = (error) => {
+        websocketClient.on("error", (error) => {
             console.error(error);
-        }
+        });
 
-        emulatedWebsocket.onclose = () => {
-            console.warn("Earthquake websocket was closed");
-        }
+        websocketClient.on("close", (code, reason) => {
+            console.warn("Earthquake websocket was closed", code, reason);
+        });
 
-        return emulatedWebsocket;
+        websocketClient.on("ping", () => {
+            websocketClient.pong();
+        });
+
+        return websocketClient;
     }
 
     async handleMessage(data) {
-        switch (data.type) {
-            case "message":
-                try {
-                    const parsedJson = JSON.parse(data.data);
-                    const action = parsedJson.action;
-                    const properties = parsedJson.data.properties;
-                    const mag = Number(properties.mag);
-                    
-                    if (action === "create" && mag >= 8) {
-                        const region = properties.flynn_region;
-                        const time = new Date(properties.time);
-        
-                        const localTime = getHumanTimeFromDate(time);
-                        await this._chatService.sendChatMessage(`Alarm 🗻 ALERT Magnitude ${mag} earthquake in ${region}`);
-                    }
-                } catch (error) {
-                    console.log(data);
-                    console.error(error);
-                }
+        try {
+            const action = data.action;
+            const properties = data.data.properties;
+            const mag = Number(properties.mag);
+            const region = properties.flynn_region;
+            const time = new Date(properties.time);
+
+            if (action === "create" && mag >= 8) {
+                const localTime = getHumanTimeFromDate(time);
+                await this._chatService.sendChatMessage(`Alarm 🗻 ALERT Magnitude ${mag} earthquake in ${region}`);
+            }
+        } catch (error) {
+            console.log(data);
+            console.warn(error);
         }
     }
 }
