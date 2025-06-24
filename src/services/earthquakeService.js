@@ -5,17 +5,17 @@ export class EarthquakeService {
     constructor(chatService) {
         this._chatService = chatService;
         this._websocketUrl = "wss://www.seismicportal.eu/standing_order/websocket"
-        this._websocketClient = this.start();
+        this.start();
     }
 
     start() {
-        let websocketClient = new WebSocket(this._websocketUrl);
+        this._websocketClient = new WebSocket(this._websocketUrl);
 
-        websocketClient.on("open", () => {
+        this._websocketClient.on("open", () => {
             console.log("WebSocket connection opened to " + this._websocketUrl);
         });
 
-        websocketClient.on("message", async (data) => {
+        this._websocketClient.on("message", async (data) => {
             try {
                 await this.handleMessage(JSON.parse(data.toString()));
             } catch (error) {
@@ -23,19 +23,20 @@ export class EarthquakeService {
             }
         });
 
-        websocketClient.on("error", (error) => {
+        this._websocketClient.on("error", (error) => {
             console.error(error);
         });
 
-        websocketClient.on("close", (code, reason) => {
+        this._websocketClient.on("close", (code, reason) => {
             console.warn("Earthquake websocket was closed", code, reason);
+            setTimeout(() => {
+                this.start();
+            }, 5000);
         });
 
-        websocketClient.on("ping", () => {
-            websocketClient.pong();
+        this._websocketClient.on("ping", () => {
+            this._websocketClient.pong();
         });
-
-        return websocketClient;
     }
 
     async handleMessage(data) {
