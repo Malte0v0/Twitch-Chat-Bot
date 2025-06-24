@@ -1,41 +1,28 @@
 import { msToHuman, sleep } from "../utils/timeUtils.js";
+import Parser from "rss-parser";
 
 export class NewsService {
     constructor(commandPrefix, chatService) {
         this._commandPrefix = commandPrefix;
         this._chatService = chatService;
 
-        this._newsApi = process.env.NEWS_API;
-
-        this._allowedSources = ["abc-news", "cnn", "the-wall-street-journal", "nbc-news", "associated-press", "reuters", "fox-news",
-            "the-washington-post", 
-        ];
-        this._pageSize = "10";
+        this._parser = new Parser();
     }
 
     async newsCommand() {
         const newsData = await this.getNews();
 
-        const articles = newsData.articles;
-        // const articles = [];
-        // for (const article of newsData.articles) {
-        //     if (this._allowedSources.includes(article.source.id)) {
-        //         articles.push(article);
-        //     }
-        // }
+        const articles = newsData.items;
         const topArticles = articles.slice(0, 1);
 
         for (const article of topArticles) {
-            const source = article.source.name;
             const title = article.title;
-            const description = article.description;
-            const url = article.url;
 
-            const timePublished = new Date(article.publishedAt);
+            const timePublished = new Date(article.isoDate);
             const currentTime = Date.now();
             const timeSincePublished = msToHuman(currentTime - timePublished);         
 
-            await this._chatService.sendChatMessage(`(${timeSincePublished} ago) ${source} - ${title} ${url}`);
+            await this._chatService.sendChatMessage(`(${timeSincePublished} ago) ${title}`);
             await sleep(2000);
         }
 
@@ -43,9 +30,7 @@ export class NewsService {
 
     async getNews() {
         try {
-            const response = await fetch(`https://gnews.io/api/v4/top-headlines?category=world&country=us&apikey=${this._newsApi}`);
-            if (!response.ok) throw new Error("Network error:" + response.statusText);
-            const data = await response.json();
+            const data = await this._parser.parseURL(`https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US%3Aen`);
 
             return data;
         } catch (error) {

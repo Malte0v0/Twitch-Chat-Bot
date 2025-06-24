@@ -14,7 +14,7 @@ export class ChatService {
 
     get chatChannelUserId() {return this._chatChannelUserId;}
 
-    async sendChatMessage(chatMessage) {
+    async sendChatMessage(chatMessage, channelUserId=this._chatChannelUserId) {
         const messages = chatMessage.length > 500
             ? splitLength(chatMessage, 500)
             : [chatMessage];
@@ -28,7 +28,7 @@ export class ChatService {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    broadcaster_id: this._chatChannelUserId,
+                    broadcaster_id: channelUserId,
                     sender_id: this._botUserId,
                     message: message
                 })
@@ -37,7 +37,8 @@ export class ChatService {
             
             if (response.status === 401 || response.status === 403) {
                 await this._authService.refreshOAuthToken();
-                await this.sendChatMessage(message); // Retry
+                // Bug, would resend already sent messages if it happens on any other message than the first
+                await this.sendChatMessage(message);
             } else if (response.status === 429) {
                 console.log("Rate limit reached, retrying in 2 seconds...");
                 await sleep(2000);

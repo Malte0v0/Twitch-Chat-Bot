@@ -6,6 +6,7 @@ import { AuthService } from "./src/services/authService.js"
 import { WebSocketService } from "./src/services/websocketService.js";
 import { ChatService } from "./src/services/chatService.js";
 import { EarthquakeService } from "./src/services/earthquakeService.js";
+import { TruthService } from "./src/services/truthService.js";
 import { Commands } from "./src/commands/index.js";
 
 
@@ -22,6 +23,7 @@ async function main() {
 	await authService.getAuth();
 	const chatService = new ChatService(authService);
 	const earthquakeService = new EarthquakeService(chatService);
+	const truthService = new TruthService(chatService);
 	const commands = new Commands(chatService, db, commandPrefix);
 	const websocketService = new WebSocketService(authService, chatService, commands, commandPrefix);
 

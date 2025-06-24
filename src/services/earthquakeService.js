@@ -4,15 +4,15 @@ import { getHumanTimeFromDate } from "../utils/timeUtils.js"
 export class EarthquakeService {
     constructor(chatService) {
         this._chatService = chatService;
-
+        this._websocketUrl = "https://www.seismicportal.eu/standing_order"
         this._emulatedWebsocket = this.start();
     }
 
     start() {
-        let emulatedWebsocket = new SockJS("https://www.seismicportal.eu/standing_order");
+        let emulatedWebsocket = new SockJS(this._websocketUrl);
 
         emulatedWebsocket.onopen = () => {
-            console.log("Connected to earthquake websocket");
+            console.log("WebSocket connection opened to " + this._websocketUrl);
         }
 
         emulatedWebsocket.onmessage = async (data) => {
@@ -37,19 +37,22 @@ export class EarthquakeService {
     async handleMessage(data) {
         switch (data.type) {
             case "message":
-                const parsedJson = JSON.parse(data.data);
-                
-                const action = parsedJson.action;
-
-                const properties = parsedJson.data.properties;
-                const region = properties.flynn_region;
-                const mag = Number(properties.mag);
-                const time = new Date(properties.time);
-
-                const localTime = getHumanTimeFromDate(time);
-
-                if (action === "create" && mag >= 8) {
-                await this._chatService.sendChatMessage(`Alarm 🗻 ALERT Magnitude ${mag} earthquake in ${region}`);
+                try {
+                    const parsedJson = JSON.parse(data.data);
+                    const action = parsedJson.action;
+                    const properties = parsedJson.data.properties;
+                    const mag = Number(properties.mag);
+                    
+                    if (action === "create" && mag >= 8) {
+                        const region = properties.flynn_region;
+                        const time = new Date(properties.time);
+        
+                        const localTime = getHumanTimeFromDate(time);
+                        await this._chatService.sendChatMessage(`Alarm 🗻 ALERT Magnitude ${mag} earthquake in ${region}`);
+                    }
+                } catch (error) {
+                    console.log(data);
+                    console.error(error);
                 }
         }
     }
