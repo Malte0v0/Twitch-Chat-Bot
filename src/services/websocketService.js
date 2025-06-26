@@ -31,7 +31,7 @@ export class WebSocketService {
         });
 
         websocketClient.on("close", (code, reason) => {
-            console.warn("Websocket closed:", code, JSON.parse(reason.toString()));
+            console.warn("Websocket closed:", code, reason.toString());
 
             let newUrl = websocketUrl;
 
@@ -59,7 +59,7 @@ export class WebSocketService {
     reconnect(websocketUrl=this._defaultWebsocketUrl) {
         clearInterval(this._keepaliveInterval);
         // Close the old websocketClient
-        if (this._websocketClient) {
+        if (this._websocketClient && this._websocketClient.readyState === WebSocket.OPEN) {
             this._websocketClient.terminate();
         }
         // Start a new one
