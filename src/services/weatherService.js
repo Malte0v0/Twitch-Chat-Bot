@@ -114,7 +114,7 @@ export class WeatherService {
 
             return {lat, lon, name, country};
         } catch (error) {
-            await this._chatService.sendChatMessage("Could not find location", cityName);
+            await this._chatService.sendChatMessage("Could not find location" + cityName);
         }
     }
 }
