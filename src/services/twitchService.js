@@ -101,7 +101,7 @@ export class TwitchService {
                 this._websocketSessionID = data.payload.session.id;
                 this._keepaliveTimeoutSeconds = data.payload.session.keepalive_timeout_seconds;
 
-                // this.registerEventSubListeners().catch((error) => {console.warn(error)});
+                await this.registerEventSubListeners();
                 await this.startHeartbeatMonitor();
                 break;
             case "session_keepalive":
