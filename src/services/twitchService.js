@@ -9,14 +9,15 @@ export class TwitchService {
         this._commands = commands;
         this._commandPrefix = commandPrefix;
         
-        this._defaultWebSocketURL = "ws://127.0.0.1:8080/ws";
-        // this._defaultWebSocketURL = "wss://eventsub.wss.twitch.tv/ws";
+        this._defaultWebSocketURL = "wss://eventsub.wss.twitch.tv/ws";
         this._websocketClient = this.start();
         
         this._websocketSessionID = null;
 
         this._keepaliveTimeoutSeconds = null;
         this._latestWsMessage = Date.now();
+
+        this._commandRegex = new RegExp(`^(?:\\${this._commandPrefix})(\\w+)`);
     }
 
     start(url=this._defaultWebSocketURL) {
@@ -24,33 +25,60 @@ export class TwitchService {
 
         client.on("error", (error) => {
             console.warn("Twitch WebSocket error:", error);
+            this.cleanup();
         });
 
         client.on("open", () => {
             console.log("Twitch WebSocket connection opened, url:", url);
         });
 
-        client.on("message", (data) => {
-            this.handleMessages(JSON.parse(data.toString())).catch((error) => {console.warn(error)});
+        client.on("message", async (data) => {
+            try {
+                await this.handleMessages(JSON.parse(data.toString()));
+            } catch (error) {
+                console.error("Error handling Twitch websocket message:", error);
+            }
         });
 
         client.on("close", (code, reason) => {
-            console.warn("Twitch WebSocket closed:", code, reason.toString());
+            console.log(`Twitch WebSocket closed: ${code} ${reason.toString()}`);
+            this.cleanup();
+
+            if (code === 1000) {
+                setTimeout(() => {
+                    this.reconnect(url);
+                }, 1000);
+            }
         });
 
         return client;
     }
 
     reconnect(url=this._defaultWebSocketURL) {
-        if (this._keepaliveInterval) {
-            clearInterval(this._keepaliveInterval);
-        }
+        // Reconnect debounce
+        if (this._reconnecting) return;
+        this._reconnecting = true;
+
+        this.cleanup();
+
         // Make a reference to the old WebSocket client
         this._oldWebSocketClient = this._websocketClient;
 
         console.log("Twitch WebSocket reconnecting with url:", url);
         // Make a new WebSocket client
         this._websocketClient = this.start(url);
+
+        // After a new connection has been opened, not longer connecting
+        setTimeout(() => {
+            this._reconnecting = false;
+        }, 5000);
+    }
+
+    cleanup() {
+        if (this._keepaliveInterval) {
+            clearInterval(this._keepaliveInterval);
+            this._keepaliveInterval = null;
+        }
     }
 
     async handleMessages(data) {
@@ -67,7 +95,7 @@ export class TwitchService {
                 if (this._oldWebSocketClient) {
                     console.log("Closing old Twitch WebSocket");
                     this._oldWebSocketClient.close();
-                    this._oldWebSocketClient = undefined;
+                    this._oldWebSocketClient = null;
                 }
 
                 this._websocketSessionID = data.payload.session.id;
@@ -77,7 +105,7 @@ export class TwitchService {
                 await this.startHeartbeatMonitor();
                 break;
             case "session_keepalive":
-                console.log("Heartbeat", this._websocketSessionID)
+                // console.log("Heartbeat", this._websocketSessionID)
                 break;
             case "notification":
                 switch (data.metadata.subscription_type) {
@@ -96,10 +124,12 @@ export class TwitchService {
                         try {
                             if (messageText.toLowerCase().startsWith(this._commandPrefix)) {
                                 // The message is a command
-                                const pattern = new RegExp(`^(?:\\${this._commandPrefix})(\\w+)`);
-                                const command = messageText.toLowerCase().match(pattern)[1];
+                                const match = messageText.toLowerCase().match(this._commandRegex);
 
-                                await this._commands.handleCommand(command, messageText, data);
+                                if (match && match[1]) {
+                                    const command = match[1];
+                                    await this._commands.handleCommand(command, messageText, data);
+                                }
                             }
                         } catch (error) {
                             console.error(error);
@@ -113,6 +143,11 @@ export class TwitchService {
                 const reconnectURL = data.payload.session.reconnect_url;
                 this.reconnect(reconnectURL);
                 break;
+            case "revocation":
+                console.warn("Twitch WebSocket EventSub revocation message recieved", data.payload);
+                break;
+            default:
+                console.warn("Unhandled message type", data.metadata.message_type);
         }
     }
 
@@ -150,9 +185,7 @@ export class TwitchService {
     }
 
     async startHeartbeatMonitor() {
-        if (this._keepaliveInterval) {
-            clearInterval(this._keepaliveInterval);
-        }
+        this.cleanup();
 
         this._keepaliveInterval = setInterval(() => {
             const timeSinceLastWsMessage = Date.now() - this._latestWsMessage;
