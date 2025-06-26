@@ -3,11 +3,11 @@ import "dotenv/config";
 
 import { initializeDatabase } from "./src/database/index.js";
 import { AuthService } from "./src/services/authService.js"
-import { WebSocketService } from "./src/services/websocketService.js";
 import { ChatService } from "./src/services/chatService.js";
 import { EarthquakeService } from "./src/services/earthquakeService.js";
 import { TruthService } from "./src/services/truthService.js";
 import { Commands } from "./src/commands/index.js";
+import { TwitchService } from "./src/services/twitchService.js";
 
 
 const db = new Database("database.db", {timeout: 1000});
@@ -25,7 +25,7 @@ async function main() {
 	const earthquakeService = new EarthquakeService(chatService);
 	// const truthService = new TruthService(chatService);
 	const commands = new Commands(chatService, db, commandPrefix);
-	const websocketService = new WebSocketService(authService, chatService, commands, commandPrefix);
+	const twitchService = new TwitchService(authService, chatService, commands, commandPrefix);
 
 	setInterval(() => {
 		authService.refreshOAuthToken().catch(console.error);
