@@ -13,13 +13,21 @@ export class EarthquakeService {
 
         this._websocketClient.on("open", () => {
             console.log("WebSocket connection opened to " + this._websocketUrl);
+
+            this._keepAliveInterval = setInterval(() => {
+                if (this._websocketClient.readyState === WebSocket.OPEN) {
+                    this._websocketClient.ping();
+                }
+            }, 15000);
         });
 
         this._websocketClient.on("message", async (data) => {
+            const raw = data.toString();
             try {
-                await this.handleMessage(JSON.parse(data.toString()));
+                await this.handleMessage(JSON.parse(raw));
             } catch (error) {
-                console.error("Error in earthquake message handler:", error);
+                console.error("Parse or handle error:", error);
+                console.error("Raw message:", raw);
             }
         });
 
@@ -29,13 +37,10 @@ export class EarthquakeService {
 
         this._websocketClient.on("close", (code, reason) => {
             console.warn("Earthquake websocket was closed", code, reason);
+            clearInterval(this._keepAliveInterval);
             setTimeout(() => {
                 this.start();
             }, 5000);
-        });
-
-        this._websocketClient.on("ping", () => {
-            this._websocketClient.pong();
         });
     }
 

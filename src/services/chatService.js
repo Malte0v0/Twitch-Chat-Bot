@@ -38,11 +38,11 @@ export class ChatService {
             if (response.status === 401 || response.status === 403) {
                 await this._authService.refreshOAuthToken();
                 // Bug, would resend already sent messages if it happens on any other message than the first
-                await this.sendChatMessage(message);
+                await this.sendChatMessage(message, channelUserId);
             } else if (response.status === 429) {
                 console.log("Rate limit reached, retrying in 2 seconds...");
                 await sleep(2000);
-                await this.sendChatMessage(message);
+                await this.sendChatMessage(message, channelUserId);
             } else if (response.status != 200) {
                 let data = await response.json();
                 console.error("Failed to send chat message");

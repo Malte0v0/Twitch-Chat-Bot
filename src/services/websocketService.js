@@ -10,16 +10,16 @@ export class WebSocketService {
 
         this._commandPrefix = commandPrefix;
         
-        this._websocketUrl = "wss://eventsub.wss.twitch.tv/ws";
+        this._defaultWebsocketUrl = "wss://eventsub.wss.twitch.tv/ws";
         this._websocketSessionID = null;
-        this._websocketClient = this.start(this._websocketUrl);
+        this._websocketClient = this.start(this._defaultWebsocketUrl);
 
         this._lastKeepalive = Date.now();
         this._keepaliveTimeoutMilliseconds = 10 * 1000;
 
     }
 
-    start(websocketUrl=this._websocketUrl) {
+    start(websocketUrl=this._defaultWebsocketUrl) {
         let websocketClient = new WebSocket(websocketUrl);
 
         websocketClient.on("error", (error) => {
@@ -33,16 +33,16 @@ export class WebSocketService {
         websocketClient.on("close", (code, reason) => {
             console.warn("Websocket closed:", code, reason);
 
-            if(code === 1006) {
-                console.log("Attempting to reconnect...");
-                setTimeout(() => {
-                    this.reconnect(websocketUrl);
-                }, 5_000);
-            }
-        });
+            let newUrl = websocketUrl;
 
-        websocketClient.on("ping", () => {
-            websocketClient.pong();
+            if (code === 4007) {
+                console.warn("Invalid reconnect URL, falling back to default WebSocket URL")
+                newUrl = this._defaultWebsocketUrl;
+            }
+
+            setTimeout(() => {
+                this.reconnect(newUrl);
+            }, 5_000);
         });
 
         websocketClient.on("message", async (data) => {
@@ -56,7 +56,7 @@ export class WebSocketService {
         return websocketClient;
     }
 
-    reconnect(websocketUrl=this._websocketUrl) {
+    reconnect(websocketUrl=this._defaultWebsocketUrl) {
         clearInterval(this._keepaliveInterval);
         // Close the old websocketClient
         this._websocketClient.close();
@@ -82,8 +82,8 @@ export class WebSocketService {
                 this.setupKeepaliveWatcher();
                 break;
             case "session_reconnect":
-                this._websocketUrl = data.payload.session.reconnect_url;
-                this.reconnect();
+                const reconnectUrl = data.payload.session.reconnect_url;
+                this.reconnect(reconnectUrl);
                 break;
             case "notification": // An EventSub notification has occurred, such as channel.chat.message
                 switch (data.metadata.subscription_type) {

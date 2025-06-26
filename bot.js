@@ -23,7 +23,7 @@ async function main() {
 	await authService.getAuth();
 	const chatService = new ChatService(authService);
 	const earthquakeService = new EarthquakeService(chatService);
-	const truthService = new TruthService(chatService);
+	// const truthService = new TruthService(chatService);
 	const commands = new Commands(chatService, db, commandPrefix);
 	const websocketService = new WebSocketService(authService, chatService, commands, commandPrefix);
 
