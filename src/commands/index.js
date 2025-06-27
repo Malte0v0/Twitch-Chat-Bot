@@ -19,6 +19,9 @@ export class Commands {
             case "remind": case "remindme":
                 await this._reminderScheduler.remindCommand(messageText, data);
                 break;
+            case "unset":
+                await this._reminderScheduler.unsetReminderCommand(messageText, data);
+                break;
             case "weather":
                 await this._weatherService.weatherCommand(messageText, data).catch(error => {
                     console.error("Weather command failed:", error);

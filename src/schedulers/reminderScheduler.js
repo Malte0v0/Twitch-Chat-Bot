@@ -34,6 +34,8 @@ export class ReminderScheduler {
     }
 
     scheduleReminder(delay, reminder) {
+        this._reminders.push(reminder);
+
         const timeout = setTimeout(async () => {
             if (delay > MAX_32_BIT) {
                 this.scheduleReminder(delay - MAX_32_BIT, reminder);
@@ -145,9 +147,10 @@ export class ReminderScheduler {
             currentTime + timeToTarget,
             currentTime
         )
+        const rowId = result.lastInsertRowid;
         
         const reminder = {
-            id: result.lastInsertRowid,
+            id: rowId,
             sender,
             target,
             message: reminderDict.message,
@@ -158,11 +161,54 @@ export class ReminderScheduler {
         this.scheduleReminder(timeToTarget, reminder);
 
         // Let the user know that a reminder has been set
-        const timeUntil = msToHuman(timeToTarget)
+        const timeUntil = msToHuman(timeToTarget);
         if (sender === target){
-            await this._chatService.sendChatMessage(`@${sender}, I will remind you in ${timeUntil}`)
+            await this._chatService.sendChatMessage(`@${sender}, I will remind you in ${timeUntil} (ID ${rowId})`);
         } else {
-            await this._chatService.sendChatMessage(`@${sender}, I will remind ${target} in ${timeUntil}`)
+            await this._chatService.sendChatMessage(`@${sender}, I will remind ${target} in ${timeUntil} (ID ${rowId})`);
+        }
+    }
+
+    parseUnsetReminderCommand(messageText) {
+        const pattern = new RegExp(`^\\${this._commandPrefix}unset\\s+(\\d+)`);
+        const match = messageText.match(pattern);
+
+        if (match && match[1]) {
+            return match[1];
+        } else {
+            return;
+        }
+    }
+
+    async unsetReminderCommand(messageText, data) {
+        const sender = data.payload.event.chatter_user_login.toLowerCase()
+        const rowId = this.parseUnsetReminderCommand(messageText);
+        
+        if (!rowId) {
+            return;
+        }
+        
+        let rowIdExists = false;
+        for (const reminder of this._reminders) {
+            if (reminder.id.toString() === rowId.toString()) {
+                rowIdExists = true;
+            }
+        }
+
+        if (!rowIdExists) {
+            await this._chatService.sendChatMessage(`@${sender}, No reminder with ID ${rowId} was found`);
+            return;
+        }
+
+        const deleteQuery = this._db.prepare(`
+            DELETE FROM reminders WHERE id = ? AND sender = ?
+        `);
+        const result = deleteQuery.run(rowId, sender);
+
+        if (result.changes > 0) {
+            await this._chatService.sendChatMessage(`@${sender}, Reminder with ID ${rowId} has been unset`);
+        } else {
+            await this._chatService.sendChatMessage(`@${sender}, no KindaWeird`);
         }
     }
 }
