@@ -24,7 +24,7 @@ export class Commands {
                 break;
             case "weather":
                 await this._weatherService.weatherCommand(messageText, data).catch(error => {
-                    console.error("Weather command failed:", error);
+                    console.warn("Weather command failed:", error);
                 });
                 break;
             case "news":

@@ -23,6 +23,7 @@ export class ChatService {
                 ? chatMessage.slice(0, -1)
                 : chatMessage + ".";
         }
+        this._lastMessage = chatMessage;
 
         const messages = chatMessage.length > 500
             ? splitLength(chatMessage, 500)
