@@ -8,6 +8,8 @@ export class ChatService {
         // p5vrq 1251520948
         // 527762906
         this._chatChannelUserId = process.env.CHAT_CHANNEL_USER_ID;
+
+        this._lastMessage = undefined;
     }
 
     get botUserId() {return this._botUserId;}
@@ -15,6 +17,13 @@ export class ChatService {
     get chatChannelUserId() {return this._chatChannelUserId;}
 
     async sendChatMessage(chatMessage, channelUserId=this._chatChannelUserId) {
+        // Make sure you dont send the same string multple times in a row
+        if (this._lastMessage === chatMessage) {
+            chatMessage = chatMessage.endsWith(".")
+                ? chatMessage.slice(0, -1)
+                : chatMessage + ".";
+        }
+
         const messages = chatMessage.length > 500
             ? splitLength(chatMessage, 500)
             : [chatMessage];
