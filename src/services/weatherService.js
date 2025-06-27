@@ -10,7 +10,9 @@ export class WeatherService {
         const pattern = new RegExp(`\\${this._commandPrefix}weather (.+)`);
         const match = messageText.match(pattern);
 
-        if (!match) throw new Error("Weather command, no match in message");
+        if (!match) {
+            return;
+        }
 
         const cityName = match[1];
         const sender = data.payload.event.chatter_user_login.toLowerCase();
