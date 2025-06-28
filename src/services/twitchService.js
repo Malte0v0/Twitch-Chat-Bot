@@ -18,6 +18,8 @@ export class TwitchService {
         this._latestWsMessage = Date.now();
 
         this._commandRegex = new RegExp(`^(?:\\${this._commandPrefix})(\\w+)`);
+
+        this._isReconnect = false;
     }
 
     start(url=this._defaultWebSocketURL) {
@@ -101,7 +103,11 @@ export class TwitchService {
                 this._websocketSessionID = data.payload.session.id;
                 this._keepaliveTimeoutSeconds = data.payload.session.keepalive_timeout_seconds;
 
-                await this.registerEventSubListeners();
+                if (!this._isReconnect) {
+                    await this.registerEventSubListeners();
+                }
+                this._isReconnect = false;
+                
                 await this.startHeartbeatMonitor();
                 break;
             case "session_keepalive":
@@ -141,6 +147,7 @@ export class TwitchService {
             case "session_reconnect":
                 console.warn("Recieved reconnection message from Twitch EventSub WebSocket");
                 const reconnectURL = data.payload.session.reconnect_url;
+                this._isReconnect = true;
                 this.reconnect(reconnectURL);
                 break;
             case "revocation":
