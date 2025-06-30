@@ -36,6 +36,10 @@ export class Commands {
             case "sleep":
                 await this._statusService.setUserStatus(messageText, data, "sleep");
                 break;
+            case "r1":
+                break;
+            case "gpt":
+                break;
             default:
                 console.warn("Unknown command,", command);
         }
