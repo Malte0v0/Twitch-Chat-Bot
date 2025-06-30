@@ -10,28 +10,38 @@ export class TwitchService {
         this._commandPrefix = commandPrefix;
         
         this._defaultWebSocketURL = "wss://eventsub.wss.twitch.tv/ws";
+        // Start initial connection
         this._websocketClient = this.start();
+        this._oldWebSocketClient = null;
         
         this._websocketSessionID = null;
-
         this._keepaliveTimeoutSeconds = null;
         this._latestWsMessage = Date.now();
 
         this._commandRegex = new RegExp(`^(?:\\${this._commandPrefix})(\\w+)`);
 
-        this._isReconnect = false;
+        this._isReconnectEvent = false;
+        this._reconnecting = false;
+        this._keepaliveInterval = null;
+
     }
 
     start(url=this._defaultWebSocketURL) {
+        console.log("Creating Twitch WebSocket connection to:", url);
         const client = new WebSocket(url);
 
         client.on("error", (error) => {
-            console.warn("Twitch WebSocket error:", error);
-            this.cleanup();
+            console.warn(`Twitch WebSocket ${this._websocketSessionID || "unknown"} error: ${error}`);
+
+            if (!this._reconnecting) {
+                setTimeout(() => {
+                    this.reconnect(url);
+                }, 5000);
+            }
         });
 
         client.on("open", () => {
-            console.log("Twitch WebSocket connection opened, url:", url);
+            console.log(`Twitch WebSocket ${this._websocketSessionID || "new"} connection opened, url: ${url}`);
         });
 
         client.on("message", async (data) => {
@@ -43,13 +53,19 @@ export class TwitchService {
         });
 
         client.on("close", (code, reason) => {
-            console.log(`Twitch WebSocket closed: ${code} ${reason.toString()}`);
-            this.cleanup();
+            console.log(`Twitch WebSocket ${this._websocketSessionID || "unknown"} closed: ${code} ${reason.toString()}`);
 
-            if (code === 1000) {
-                setTimeout(() => {
-                    this.reconnect(url);
-                }, 1000);
+            if (!this._reconnecting && client === this._websocketClient) {
+                if (code === 1000) {
+                    setTimeout(() => {
+                        this.reconnect(url);
+                    }, 1000);
+                } else {
+                    // For other close codes, wait a bit longer
+                    setTimeout(() => {
+                        this.reconnect(url);
+                    }, 5000);
+                }
             }
         });
 
@@ -58,28 +74,67 @@ export class TwitchService {
 
     reconnect(url=this._defaultWebSocketURL) {
         // Reconnect debounce
-        if (this._reconnecting) return;
+        if (this._reconnecting) {
+            console.log("Reconnection already in progress");
+            return;
+        };
         this._reconnecting = true;
 
-        this.cleanup();
+        // Stop heartbeat monitor
+        this.clearHeartbeatMonitor();
 
-        // Make a reference to the old WebSocket client
-        this._oldWebSocketClient = this._websocketClient;
+        if (this._isReconnectEvent) {
+            // Make a reference to the old WebSocket client
+            this._oldWebSocketClient = this._websocketClient;
+        } else {
+            // Close existing connection
+            this.cleanupAll();
+        }
 
-        console.log("Twitch WebSocket reconnecting with url:", url);
+
+        console.log(`Twitch WebSocket ${this._websocketSessionID || "unknown"} reconnecting with url: ${url}`);
         // Make a new WebSocket client
         this._websocketClient = this.start(url);
-
-        // After a new connection has been opened, not longer connecting
-        setTimeout(() => {
-            this._reconnecting = false;
-        }, 5000);
     }
 
-    cleanup() {
+    cleanupAll() {
+        this.clearHeartbeatMonitor();
+        this.cleanupMainConnection();
+        this.cleanupOldConnection();
+    }
+
+    clearHeartbeatMonitor() {
         if (this._keepaliveInterval) {
             clearInterval(this._keepaliveInterval);
             this._keepaliveInterval = null;
+        }
+    }
+
+    cleanupMainConnection() {
+        if (this._websocketClient) {
+            console.log("Cleaning up main Twitch WebSocket connection");
+            this._websocketClient.removeAllListeners();
+
+            if (this._websocketClient.readyState === WebSocket.OPEN ||
+                this._websocketClient.readyState === WebSocket.CONNECTING) {
+                this._websocketClient.close(1000, "Cleaning up");
+            }
+
+            this._websocketClient = null;
+        }
+    }
+
+    cleanupOldConnection() {
+        if (this._oldWebSocketClient) {
+            console.log("Cleaning up old Twitch WebSocket connection");
+            this._oldWebSocketClient.removeAllListeners();
+
+            if (this._oldWebSocketClient.readyState === WebSocket.OPEN ||
+                this._oldWebSocketClient.readyState === WebSocket.CONNECTING) {
+                this._oldWebSocketClient.close(1000, "Cleaning up old connection");
+            }
+
+            this._oldWebSocketClient = null;
         }
     }
 
@@ -95,19 +150,22 @@ export class TwitchService {
             case "session_welcome":
                 // Handle an eventual reconnect situation
                 if (this._oldWebSocketClient) {
-                    console.log("Closing old Twitch WebSocket");
-                    this._oldWebSocketClient.close();
-                    this._oldWebSocketClient = null;
+                    console.log("Closing old Twitch WebSocket", this._websocketSessionID);
+                    this.cleanupOldConnection();
                 }
 
                 this._websocketSessionID = data.payload.session.id;
                 this._keepaliveTimeoutSeconds = data.payload.session.keepalive_timeout_seconds;
+                if (this._reconnecting) {
+                    this._reconnecting = false;
+                }
 
-                if (!this._isReconnect) {
+                if (!this._isReconnectEvent) {
+                    console.log("Registering EventSub listeners for new connection");
                     await this.registerEventSubListeners();
                 }
-                this._isReconnect = false;
-                
+
+                this._isReconnectEvent = false;
                 await this.startHeartbeatMonitor();
                 break;
             case "session_keepalive":
@@ -147,11 +205,16 @@ export class TwitchService {
             case "session_reconnect":
                 console.warn("Recieved reconnection message from Twitch EventSub WebSocket");
                 const reconnectURL = data.payload.session.reconnect_url;
-                this._isReconnect = true;
+                this._isReconnectEvent = true;
                 this.reconnect(reconnectURL);
                 break;
             case "revocation":
-                console.warn("Twitch WebSocket EventSub revocation message recieved", data.payload);
+                console.warn("Recieved revocation message from Twitch EventSub WebSocket", data.payload);
+                if (!this._reconnecting) {
+                    setTimeout(() => {
+                        this.reconnect();
+                    }, 2000);
+                }
                 break;
             default:
                 console.warn("Unhandled message type", data.metadata.message_type);
@@ -159,47 +222,58 @@ export class TwitchService {
     }
 
     async registerEventSubListeners() {
-        let response = await fetch("https://api.twitch.tv/helix/eventsub/subscriptions", {
-            method: "POST",
-            headers: {
-                "Authorization": "Bearer " + this._authService.oauthToken,
-                "Client-Id": this._authService.clientId,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                type: "channel.chat.message",
-                version: "1",
-                condition: {
-                    broadcaster_user_id: this._chatService.chatChannelUserId,
-                    user_id: this._chatService.botUserId
+        try {
+            let response = await fetch("https://api.twitch.tv/helix/eventsub/subscriptions", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + this._authService.oauthToken,
+                    "Client-Id": this._authService.clientId,
+                    "Content-Type": "application/json"
                 },
-                transport: {
-                    method: "websocket",
-                    session_id: this._websocketSessionID
-                }
-            })
-        });
+                body: JSON.stringify({
+                    type: "channel.chat.message",
+                    version: "1",
+                    condition: {
+                        broadcaster_user_id: this._chatService.chatChannelUserId,
+                        user_id: this._chatService.botUserId
+                    },
+                    transport: {
+                        method: "websocket",
+                        session_id: this._websocketSessionID
+                    }
+                })
+            });
 
-        if (response.status != 202) {
-            let data = await response.json();
-            console.error("Failed to subscribe to channel.chat.message. API call returned status code " + response.status);
-            console.error(data);
-            process.exit(1);
-        } else {
-            const data = await response.json();
-            console.log(`Subscribed to channel.chat.message [${data.data[0].id}]`);
+            if (response.status !== 202) {
+                const data = await response.json();
+                console.error("Failed to subscribe to channel.chat.message. API call returned status code " + response.status);
+                console.error(data);
+                process.exit(1);
+            } else {
+                const data = await response.json();
+                console.log(`Subscribed to channel.chat.message [${data.data[0].id}]`);
+            }
+        } catch (error) {
+            console.warn("Error registering EventSub listener:", error);
+
+            setTimeout(() => {
+                this.reconnect();
+            }, 5000);
         }
     }
 
     async startHeartbeatMonitor() {
-        this.cleanup();
+        this.clearHeartbeatMonitor();
 
         this._keepaliveInterval = setInterval(() => {
             const timeSinceLastWsMessage = Date.now() - this._latestWsMessage;
-            if (timeSinceLastWsMessage > this._keepaliveTimeoutSeconds*1000 + 5000) {
+            const timeout = (this._keepaliveTimeoutSeconds * 1000) + 5000;
+
+            if (timeSinceLastWsMessage > timeout) {
                 // Assume connection is dead and reconnect
+                console.warn(`Twitch WebSocket connection is presumed dead (${timeSinceLastWsMessage}ms since last message), reconnecting...`)
                 this.reconnect();
             }
-        }, 5*1000); // Check every 5 seconds
+        }, 5000); // Check every 5 seconds
     }
 }
