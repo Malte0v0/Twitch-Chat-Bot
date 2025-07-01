@@ -37,13 +37,18 @@ export class WeatherService {
         const visibility = weather.visibility;
         const windSpeed = weather.wind_speed;
 
+        let alert = "";
+        if (weatherJson.alerts) {
+            alert = `⚠️ Alert: ${weatherJson.alerts.slice(-1)[0].event}`;
+        }
+
         const city = geocode.name;
         const country = geocode.country;
         const emoji = this.getWeatherEmoji(weather.weather[0]);
         
         await this._chatService.sendChatMessage(`@${sender}, ${city}, ${country} (now): ${emoji} ${temp}°C (${tempF}°F), feels like ${feelsLike}°C (${feelsLikeF}°F). \
             UV index: ${uvi}. Cloud cover: ${clouds}%. \
-            Wind speed: ${windSpeed} m/s. Humidity: ${humidity}%. Air pressure: ${pressure} hPa.`);
+            Wind speed: ${windSpeed} m/s. Humidity: ${humidity}%. Air pressure: ${pressure} hPa. ${alert}`);
 
     }
 
