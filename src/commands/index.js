@@ -45,6 +45,23 @@ export class Commands {
         }
     }
 
+    async handleOnSightDueReminders(data) {
+        try {
+            const dueOnSightReminders = this._reminderScheduler.dueOnSightReminders;
+            
+            const userLogin = data.payload.event.chatter_user_login;
+            
+            for (const reminder of dueOnSightReminders) {
+                if (reminder.target === userLogin) {
+                    this._reminderScheduler.sendReminder(reminder);
+                }
+            }
+
+        } catch (error) {
+            console.warn(error);
+        }
+    }
+
     async handleAfkAsleep(messageText, data) {
         try {
             const userId = data.payload.event.chatter_user_id;

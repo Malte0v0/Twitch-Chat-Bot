@@ -183,6 +183,10 @@ export class TwitchService {
                         // AFK AND SLEEPING START
                         await this._commands.handleAfkAsleep(messageText, data);
                         // AFK AND SLEEPING END
+
+                        // ON SIGHT REMINDERS START
+                        await this._commands.handleOnSightDueReminders(data);
+                        // ON SIGHT REMINDERS END
                         
                         // COMMANDS START
                         try {

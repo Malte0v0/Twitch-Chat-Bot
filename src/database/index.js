@@ -5,7 +5,7 @@ export function initializeDatabase(db) {
         sender TEXT NOT NULL,
         target TEXT NOT NULL,
         message TEXT NOT NULL,
-        trigger_time INTEGER NOT NULL,
+        trigger_time INTEGER,
         delivered INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL
         )        

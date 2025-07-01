@@ -8,9 +8,9 @@ export class StatusService {
 
     getAfkOrAsleepUsernames() {
         const query = this._db.prepare("SELECT user_name FROM chatter_status WHERE is_afk = 1 OR is_asleep = 1");
-        const rows = query.all()
+        const rows = query.all();
 
-        return rows.map(row => row.user_name)
+        return rows.map(row => row.user_name);
     }
 
     checkChatterStatusByName(userName) {

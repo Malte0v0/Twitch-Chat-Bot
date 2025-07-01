@@ -9,6 +9,8 @@ export class ReminderScheduler {
         this._commandPrefix = commandPrefix;
 
         this._timeouts = [];
+        this._reminders = null;
+        this._onSightReminders = null;
 
         // Start the scheduler
         this.start();
@@ -51,10 +53,18 @@ export class ReminderScheduler {
         this._timeouts.push(timeout);
     }
 
+    scheduleOnSightReminder(reminder) {
+        this._onSightReminders.push(reminder);
+    }
+
     async sendReminder(reminder) {
         const now = Date.now();
-        const delay = reminder.trigger_time - now;
-        if (delay > 0) {
+
+        let delay;
+        if (reminder.trigger_time) {
+            delay = reminder.trigger_time - now;
+        }
+        if (delay && delay > 0) {
             return;
         }
 
@@ -76,7 +86,16 @@ export class ReminderScheduler {
         return this._db.prepare(`
             SELECT * FROM reminders
             WHERE delivered = 0
+            AND trigger_time IS NOT NULL
         `).all();
+    }
+
+    get dueOnSightReminders() {
+        return this._db.prepare(`
+            SELECT * FROM reminders
+            WHERE delivered = 0
+            AND trigger_time IS NULL
+            `).all();
     }
 
     setReminderDelivered(reminder) {
@@ -89,9 +108,11 @@ export class ReminderScheduler {
         const firstPattern = new RegExp(`^\\${this._commandPrefix}remind(?:me|\\s+(\\w+))\\s+in\\s+((?:\\d+\\s*\\w+\\s*)+)$`)
         const secondPattern = new RegExp(`^\\${this._commandPrefix}remind(?:me|\\s+(\\w+))\\s+(.+)in\\s+((?:\\d+\\s*\\w+\\s*)+)$`);
         const thirdPatternNoMessage = new RegExp(`^\\${this._commandPrefix}remind(?:me|\\s+(\\w+))\\s+in\\s+((?:\\d+\\s*\\w+\\s*)+)\\s+(.+)$`);
+        const fourthPatternNoTime = new RegExp(`^\\${this._commandPrefix}remind(?:me|\\s+(\\w+))\\s+(.+)$`);
 
         let match;
-        let time, message;
+        let time = null;
+        let message = null;
 
         if (match = messageText.match(firstPattern)) {
             time = match[2];
@@ -102,13 +123,15 @@ export class ReminderScheduler {
         } else if (match = messageText.match(thirdPatternNoMessage)) {
             time = match[2];
             message = match[3];
+        } else if (match = messageText.match(fourthPatternNoTime)) {
+            message = match[2];
         }
 
         if (!match) {
-            return "No match";
+            return false;
         }
 
-        message = message === undefined ? "" : message;
+        if (!message) message = "";
 
         const targetUser = match[1] || "me";
 
@@ -121,16 +144,22 @@ export class ReminderScheduler {
 
     async remindCommand(messageText, data) {
         let reminderDict = this.parseRemindCommand(messageText)
-        if (reminderDict === "No match") {
+        if (!reminderDict) {
             return;
         }
         
         let sender = data.payload.event.chatter_user_login.toLowerCase()
-        let target = reminderDict["target"] === "me" ? data.payload.event.chatter_user_login.trim() : reminderDict["target"].toLowerCase()
+        let target = reminderDict.target === "me" ? data.payload.event.chatter_user_login.trim() : reminderDict.target.toLowerCase()
         const currentTime = Date.now();
-        const timeToTarget = convertToMs(reminderDict["time"])
 
-        if (reminderDict["message"].length > 400) {
+        let triggerTime = null;
+        let timeToTarget = null;
+        if (reminderDict.time) {
+            timeToTarget = convertToMs(reminderDict.time)
+            triggerTime = currentTime + timeToTarget;
+        }
+
+        if (reminderDict.message.length > 400) {
             return;
         }
 
@@ -141,8 +170,8 @@ export class ReminderScheduler {
         const result = insert.run(
             sender,
             target,
-            reminderDict["message"],
-            currentTime + timeToTarget,
+            reminderDict.message,
+            triggerTime,
             currentTime
         )
         const rowId = result.lastInsertRowid;
@@ -152,19 +181,28 @@ export class ReminderScheduler {
             sender,
             target,
             message: reminderDict.message,
-            trigger_time: currentTime + timeToTarget,
+            trigger_time: triggerTime,
             created_at: currentTime,
         }
 
-        this.scheduleReminder(timeToTarget, reminder);
-
-        // Let the user know that a reminder has been set
-        const timeUntil = msToHuman(timeToTarget);
-        if (sender === target){
-            await this._chatService.sendChatMessage(`@${sender}, I will remind you in ${timeUntil} (ID ${rowId})`);
-        } else {
-            await this._chatService.sendChatMessage(`@${sender}, I will remind ${target} in ${timeUntil} (ID ${rowId})`);
+        // Regular reminders
+        if (reminderDict.time) {
+            const timeUntil = msToHuman(timeToTarget);
+            this.scheduleReminder(timeToTarget, reminder);
+            // Let the user know that a reminder has been set
+            if (sender === target){
+                await this._chatService.sendChatMessage(`@${sender}, I will remind you in ${timeUntil} (ID ${rowId})`);
+            } else {
+                await this._chatService.sendChatMessage(`@${sender}, I will remind ${target} in ${timeUntil} (ID ${rowId})`);
+            }
+        } else { // On sight reminders
+            if (sender === target){
+                await this._chatService.sendChatMessage(`@${sender}, I will remind you the next time you type in the chat (ID ${rowId})`);
+            } else {
+                await this._chatService.sendChatMessage(`@${sender}, I will remind ${target} the next time they type in the chat (ID ${rowId})`);
+            }
         }
+
     }
 
     parseUnsetReminderCommand(messageText) {
