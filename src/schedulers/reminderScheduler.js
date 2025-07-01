@@ -197,9 +197,9 @@ export class ReminderScheduler {
             }
         } else { // On sight reminders
             if (sender === target){
-                await this._chatService.sendChatMessage(`@${sender}, I will remind you the next time you type in the chat (ID ${rowId})`);
+                await this._chatService.sendChatMessage(`@${sender}, I will remind you the next time you type in chat (ID ${rowId})`);
             } else {
-                await this._chatService.sendChatMessage(`@${sender}, I will remind ${target} the next time they type in the chat (ID ${rowId})`);
+                await this._chatService.sendChatMessage(`@${sender}, I will remind ${target} the next time they type in chat (ID ${rowId})`);
             }
         }
 
