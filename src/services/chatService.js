@@ -10,6 +10,9 @@ export class ChatService {
         this._chatChannelUserId = process.env.CHAT_CHANNEL_USER_ID;
 
         this._lastMessage = undefined;
+        this._messageQueue = [];
+        this._isSending = false;
+        this._rateLimitDelay = 1600;
     }
 
     get botUserId() {return this._botUserId;}
@@ -30,7 +33,35 @@ export class ChatService {
             : [chatMessage];
 
         for (const message of messages) {
-            let response = await fetch('https://api.twitch.tv/helix/chat/messages', {
+            this._messageQueue.push({message: message, channelUserId: channelUserId});
+        }
+
+        this._processQueue();
+    }
+
+    async _processQueue() {
+        if (this._isSending) return;
+        this._isSending = true;
+
+        while (this._messageQueue.length > 0) {
+            const { message, channelUserId } = this._messageQueue.shift();
+
+            const success = await this._trySendMessage(message, channelUserId);
+            if (!success) {
+                console.warn("Requeuing failed message:", message);
+                this._messageQueue.unshift({ message, channelUserId });
+                await sleep(2000);
+            } else {
+                await sleep(this._rateLimitDelay);
+            }
+        }
+
+        this._isSending = false;
+    }
+
+    async _trySendMessage(message, channelUserId) {
+        try {
+            const response = await fetch('https://api.twitch.tv/helix/chat/messages', {
                 method: "POST",
                 headers: {
                     "Authorization": "Bearer " + this._authService.oauthToken,
@@ -43,23 +74,26 @@ export class ChatService {
                     message: message
                 })
             });
-
+    
             
             if (response.status === 401 || response.status === 403) {
                 await this._authService.refreshOAuthToken();
-                // Bug, would resend already sent messages if it happens on any other message than the first
-                await this.sendChatMessage(message, channelUserId);
+                return false;
             } else if (response.status === 429) {
                 console.log("Rate limit reached, retrying in 2 seconds...");
                 await sleep(2000);
-                await this.sendChatMessage(message, channelUserId);
-            } else if (response.status != 200) {
+                return false;
+            } else if (!response.ok) {
                 let data = await response.json();
                 console.error("Failed to send chat message");
                 console.error(data);
+                return false;
             } 
-
-            await sleep(2000);
+    
+            return true;
+        } catch (error) {
+            console.error("Network or other error:", error);
+            return false;
         }
     }
 }
