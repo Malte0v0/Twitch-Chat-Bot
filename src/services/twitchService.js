@@ -180,6 +180,8 @@ export class TwitchService {
                         data.payload.event.message.text = sanitizeInput(data.payload.event.message.text);
                         let messageText = data.payload.event.message.text.trim();
 
+                        if (["ggxgang_bank"].includes(data.payload.event.chatter_user_login)) return;
+
                         // AFK AND SLEEPING START
                         await this._commands.handleAfkAsleep(messageText, data);
                         // AFK AND SLEEPING END

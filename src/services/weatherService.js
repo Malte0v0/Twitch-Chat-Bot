@@ -31,7 +31,7 @@ export class WeatherService {
         const feelsLikeF = ((feelsLike * 9/5) + 32).toFixed(2);
         const pressure = weather.pressure;
         const humidity = weather.humidity;
-        const dewPoint = weather.dew_point
+        const dewPoint = weather.dew_point;
         const uvi = weather.uvi;
         const clouds = weather.clouds;
         const visibility = weather.visibility;
