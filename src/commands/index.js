@@ -1,5 +1,6 @@
 import { ReminderScheduler } from "../schedulers/reminderScheduler.js";
 import { NewsService } from "../services/newsService.js";
+import { QuotesService } from "../services/quotesService.js";
 import { StatusService } from "../services/statusService.js";
 import { WeatherService } from "../services/weatherService.js";
 import { msToHuman } from "../utils/timeUtils.js";
@@ -12,6 +13,7 @@ export class Commands {
         this._statusService = new StatusService(chatService, db, commandPrefix);
         this._weatherService = new WeatherService(commandPrefix, chatService);
         this._newsService = new NewsService(commandPrefix, chatService);
+        this._quotesService = new QuotesService(chatService);
     }
 
     async handleCommand(command, messageText, data) {
@@ -35,6 +37,9 @@ export class Commands {
                 break;
             case "sleep":
                 await this._statusService.setUserStatus(messageText, data, "sleep");
+                break;
+            case "quote":
+                await this._quotesService.quoteCommand();
                 break;
             case "r1":
                 break;
