@@ -14,9 +14,11 @@ export class Commands {
         this._weatherService = new WeatherService(commandPrefix, chatService);
         this._newsService = new NewsService(commandPrefix, chatService);
         this._quotesService = new QuotesService(chatService);
+
+        this._execute = this.debounce(this.executeCommand, 500);
     }
 
-    async handleCommand(command, messageText, data) {
+    async executeCommand(command, messageText, data) {
         switch (command) {
             case "remind": case "remindme":
                 await this._reminderScheduler.remindCommand(messageText, data);
@@ -48,6 +50,20 @@ export class Commands {
             default:
                 console.warn("Unknown command,", command);
         }
+    }
+
+    async handleCommand(command, messageText, data) {
+        this._execute(command, messageText, data);
+    }
+
+    debounce(func, delay) {
+        let timeout;
+        return function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                func.apply(this, args);
+            }, delay);
+        };
     }
 
     async handleOnSightDueReminders(data) {
