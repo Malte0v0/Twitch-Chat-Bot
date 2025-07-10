@@ -87,7 +87,7 @@ export class EarthquakeService {
         if (mag >= 7.0 && depth <= 50) return true;
 
         // Close to population
-        const distance = await this.getDistance(lat, lon) || 0;
+        const distance = await this.getDistance(lat, lon) || 300;
         if (distance !== 0) {
             const scale = Math.exp((mag - this._minMagnitude) / 2);
             const scaledMaxDistance = scale * this._maxDistanceKm;
@@ -109,11 +109,11 @@ export class EarthquakeService {
     async getDistance(lat, lon) {
         try {
             const response = await fetch(
-                `http://api.geonames.org/findNearbyPlaceNameJSON?lat=${lat}&lng=${lon}&radius=200&maxRows=1&username=${this._geoCodeApi}`
+                `http://api.geonames.org/findNearbyPlaceNameJSON?lat=${lat}&lng=${lon}&radius=300&maxRows=1&username=${this._geoCodeApi}`
             );
             const data = await response.json();
 
-            if (!data || !data.geonames) {
+            if (!data || !data.geonames || !data.geonames.distance) {
                 console.log(data);
                 return null;
             }
