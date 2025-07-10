@@ -77,7 +77,7 @@ export class EarthquakeService {
         // Too weak
         if (mag < this._minMagnitude) return false;
 
-        console.debug("Quake is more than magnitude 5");
+        console.debug(`Quake is more than magnitude ${this._minMagnitude.toString()}`);
         console.debug(`Mag: ${mag}, Depth: ${depth}, Lat: ${lat}, Lon: ${lon}`);
         
         // Very large
