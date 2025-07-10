@@ -84,17 +84,15 @@ export class EarthquakeService {
         if (mag >= 8.0) return true;
 
         // Shallow and large
-        if (mag >= 7.0 && depth <= 50) return true;
+        if (mag >= 7.0 && depth <= 70) return true;
 
         // Close to population
         const distance = await this.getDistance(lat, lon) || 300;
-        if (distance !== 0) {
-            const scale = Math.exp((mag - this._minMagnitude) / 2);
-            const scaledMaxDistance = scale * this._maxDistanceKm;
+        const scale = Math.exp((mag - this._minMagnitude) / 1.8);
+        const scaledMaxDistance = scale * this._maxDistanceKm;
 
-            if (distance <= scaledMaxDistance) {
-                return true;   
-            }
+        if (distance <= scaledMaxDistance) {
+            return true;   
         }
 
         return false;
