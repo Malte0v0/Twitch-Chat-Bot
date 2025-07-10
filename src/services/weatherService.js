@@ -110,7 +110,7 @@ export class WeatherService {
 
     async getGeocode(cityName) {
         try {
-            const response = await fetch(`http://api.openweathermap.org/geo/1.0/direct?q=${cityName}&limit=1&appid=${this._weatherApi}`);
+            const response = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${cityName}&limit=1&appid=${this._weatherApi}`);
             if (!response.ok) throw new Error("Weather API geocoding network error:" + response.statusText);
             const data = await response.json();
 

@@ -1,11 +1,14 @@
 import WebSocket from "ws";
-import { getHumanTimeFromDate } from "../utils/timeUtils.js"
 
 export class EarthquakeService {
     constructor(chatService) {
         this._chatService = chatService;
         this._websocketUrl = "wss://www.seismicportal.eu/standing_order/websocket"
+        this._geoCodeApi = process.env.GEOCODE_API;
         this.start();
+
+        this._minMagnitude = 5.5;
+        this._maxDistanceKm = 50; // km
     }
 
     start() {
@@ -47,18 +50,81 @@ export class EarthquakeService {
     async handleMessage(data) {
         try {
             const action = data.action;
+            if (action !== "create") {
+                return;
+            }
+
             const properties = data.data.properties;
+            const lat = Number(properties.lat);
+            const lon = Number(properties.lon);
+            const depth = Number(properties.depth);
             const mag = Number(properties.mag);
+            const magType = properties.magtype
             const region = properties.flynn_region;
             const time = new Date(properties.time);
-
-            if (action === "create" && mag >= 8) {
-                const localTime = getHumanTimeFromDate(time);
-                await this._chatService.sendChatMessage(`Alarm 🗻 ALERT Magnitude ${mag} earthquake in ${region}`);
+            
+            if (await this.shouldSend(mag, depth, lat, lon)) {
+                this.sendWarning(mag, magType, region);
             }
+
         } catch (error) {
             console.log(data);
             console.warn(error);
+        }
+    }
+
+    async shouldSend(mag, depth, lat, lon) {
+        // Too weak
+        if (mag < this._minMagnitude) return false;
+
+        console.debug("Quake is more than magnitude 5");
+        console.debug(`Mag: ${mag}, Depth: ${depth}, Lat: ${lat}, Lon: ${lon}`);
+        
+        // Very large
+        if (mag >= 8.0) return true;
+
+        // Shallow and large
+        if (mag >= 7.0 && depth <= 50) return true;
+
+        // Close to population
+        const distance = await this.getDistance(lat, lon) || 0;
+        if (distance !== 0) {
+            const scale = Math.exp((mag - this._minMagnitude) / 2);
+            const scaledMaxDistance = scale * this._maxDistanceKm;
+
+            if (distance <= scaledMaxDistance) {
+                return true;   
+            }
+        }
+
+        return false;
+    }
+
+    async sendWarning(mag, magType, region) {
+        await this._chatService.sendChatMessage(
+            `Alarm 🗻 ALERT Magnitude ${mag.toFixed(1)} ${magType} quake near ${region}`
+        );
+    }
+
+    async getDistance(lat, lon) {
+        try {
+            const response = await fetch(
+                `http://api.geonames.org/findNearbyPlaceNameJSON?lat=${lat}&lng=${lon}&radius=200&maxRows=1&username=${this._geoCodeApi}`
+            );
+            const data = await response.json();
+
+            if (!data || !data.geonames) {
+                console.log(data);
+                return null;
+            }
+
+            const geoNames = data.geonames;
+            const distance = Number(geoNames[0].distance);
+
+            return distance;
+
+        } catch (error) {
+            console.log(error);
         }
     }
 }
