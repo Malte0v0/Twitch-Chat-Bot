@@ -111,7 +111,7 @@ export class EarthquakeService {
             );
             const data = await response.json();
 
-            if (!data || !data.geonames || !data.geonames.distance) {
+            if (!data || !data.geonames || !data.geonames[0].distance) {
                 console.log(data);
                 return null;
             }
