@@ -27,7 +27,7 @@ export class TwitchService {
     }
 
     start(url=this._defaultWebSocketURL) {
-        console.log("Creating Twitch WebSocket connection to:", url);
+        console.log("Connecting to Twitch WebSocket with:", url);
         const client = new WebSocket(url);
 
         client.on("error", (error) => {

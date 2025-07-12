@@ -9,9 +9,12 @@ export class EarthquakeService {
 
         this._minMag = 5.5;
         this._maxDistKm = 50; // km
+
+        this._restartIntervalSeconds = 10*1000;
     }
 
     start() {
+        console.log("Connecting to Earthquake WebSocket");
         this._websocketClient = new WebSocket(this._websocketUrl);
 
         this._websocketClient.on("open", () => {
@@ -43,7 +46,7 @@ export class EarthquakeService {
             clearInterval(this._keepAliveInterval);
             setTimeout(() => {
                 this.start();
-            }, 5000);
+            }, this._restartIntervalSeconds);
         });
     }
 
