@@ -7,8 +7,8 @@ export class EarthquakeService {
         this._geoCodeApi = process.env.GEOCODE_API;
         this.start();
 
-        this._minMagnitude = 5.5;
-        this._maxDistanceKm = 50; // km
+        this._minMag = 5.5;
+        this._maxDistKm = 50; // km
     }
 
     start() {
@@ -57,13 +57,13 @@ export class EarthquakeService {
             const properties = data.data.properties;
             const lat = Number(properties.lat);
             const lon = Number(properties.lon);
-            const depth = Number(properties.depth);
+            const depthKm = Number(properties.depth);
             const mag = Number(properties.mag);
             const magType = properties.magtype
             const region = properties.flynn_region;
             const time = new Date(properties.time);
             
-            if (await this.shouldSend(mag, depth, lat, lon)) {
+            if (await this.shouldSend(mag, depthKm, lat, lon)) {
                 this.sendWarning(mag, magType, region);
             }
 
@@ -73,25 +73,25 @@ export class EarthquakeService {
         }
     }
 
-    async shouldSend(mag, depth, lat, lon) {
+    async shouldSend(mag, depthKm, lat, lon) {
         // Too weak
-        if (mag < this._minMagnitude) return false;
+        if (mag < this._minMag) return false;
 
-        console.debug(`Quake is more than magnitude ${this._minMagnitude.toString()}`);
-        console.debug(`Mag: ${mag}, Depth: ${depth}, Lat: ${lat}, Lon: ${lon}`);
+        console.debug(`Quake is more than magnitude ${this._minMag.toString()}`);
+        console.debug(`Mag: ${mag}, Depth: ${depthKm}, Lat: ${lat}, Lon: ${lon}`);
         
         // Very large
         if (mag >= 8.0) return true;
 
         // Shallow and large
-        if (mag >= 7.0 && depth <= 70) return true;
+        if (mag >= 7.0 && depthKm <= 70) return true;
 
         // Close to population
-        const distance = await this.getDistance(lat, lon) || 300;
-        const scale = Math.exp((mag - this._minMagnitude) / 1.8);
-        const scaledMaxDistance = scale * this._maxDistanceKm;
+        const distKm = await this.getDistance(lat, lon) || 300;
+        const scale = Math.exp((mag - this._minMag) / 1.8);
+        const scaledMaxDistKm = scale * this._maxDistKm;
 
-        if (distance <= scaledMaxDistance) {
+        if (distKm <= scaledMaxDistKm) {
             return true;   
         }
 
