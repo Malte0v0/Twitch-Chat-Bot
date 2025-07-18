@@ -7,7 +7,7 @@ export class EarthquakeService {
         this._geoCodeApi = process.env.GEOCODE_API;
         this.start();
 
-        this._minMag = 5.5;
+        this._minMag = 6;
         this._maxDistKm = 50; // km
 
         this._restartIntervalSeconds = 10*1000;
