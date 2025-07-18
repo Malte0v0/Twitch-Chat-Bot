@@ -5,20 +5,21 @@ export class EarthquakeService {
         this._chatService = chatService;
         this._websocketUrl = "wss://www.seismicportal.eu/standing_order/websocket"
         this._geoCodeApi = process.env.GEOCODE_API;
-        this.start();
+        this.connect();
 
         this._minMag = 6;
         this._maxDistKm = 50; // km
 
-        this._restartIntervalSeconds = 10*1000;
+        this._reconnectInterval = 1000;
     }
 
-    start() {
+    connect() {
         console.log("Connecting to Earthquake WebSocket");
         this._websocketClient = new WebSocket(this._websocketUrl);
 
         this._websocketClient.on("open", () => {
             console.log("WebSocket connection opened to " + this._websocketUrl);
+            this._reconnectInterval = 1000;
 
             this._keepAliveInterval = setInterval(() => {
                 if (this._websocketClient.readyState === WebSocket.OPEN) {
@@ -39,14 +40,16 @@ export class EarthquakeService {
 
         this._websocketClient.on("error", (error) => {
             console.error(error);
+            this._websocketClient.close(1011);
         });
 
         this._websocketClient.on("close", (code, reason) => {
             console.warn("Earthquake websocket was closed", code, reason);
             clearInterval(this._keepAliveInterval);
             setTimeout(() => {
-                this.start();
-            }, this._restartIntervalSeconds);
+                this._reconnectInterval = Math.min(this._reconnectInterval * 2, 30000);
+                this.connect();
+            }, this._reconnectInterval);
         });
     }
 

@@ -10,11 +10,10 @@ export class TwitchService {
         this._commandPrefix = commandPrefix;
         
         this._defaultWebSocketURL = "wss://eventsub.wss.twitch.tv/ws";
-        // Start initial connection
-        this._websocketClient = this.start();
+        this.connect();
         this._oldWebSocketClient = null;
-        
         this._websocketSessionID = null;
+        
         this._keepaliveTimeoutSeconds = null;
         this._latestWsMessage = Date.now();
 
@@ -22,26 +21,27 @@ export class TwitchService {
 
         this._isReconnectEvent = false;
         this._reconnecting = false;
+        this._reconnectInterval = 1000;
         this._keepaliveInterval = null;
-
     }
 
-    start(url=this._defaultWebSocketURL) {
+    connect(url=this._defaultWebSocketURL) {
         console.log("Connecting to Twitch WebSocket with:", url);
         const client = new WebSocket(url);
-
-        client.on("error", (error) => {
-            console.warn(`Twitch WebSocket ${this._websocketSessionID || "unknown"} error: ${error}`);
-
-            if (!this._reconnecting) {
-                setTimeout(() => {
-                    this.reconnect(url);
-                }, 5000);
+        const connectTimeout = setTimeout(() => {
+            if (client.readyState === WebSocket.CONNECTING) {
+                console.warn("Connection timeout");
+                client.close();
             }
-        });
+        }, 10000);
+
+        this._mainWebSocketClient = client;
 
         client.on("open", () => {
             console.log(`Twitch WebSocket ${this._websocketSessionID || "new"} connection opened, url: ${url}`);
+            clearInterval(connectTimeout);
+            this._reconnecting = false;
+            this.resetReconnectInterval();
         });
 
         client.on("message", async (data) => {
@@ -52,24 +52,23 @@ export class TwitchService {
             }
         });
 
+        client.on("error", (error) => {
+            console.warn(`Twitch WebSocket ${this._websocketSessionID || "unknown"} error: ${error}`);
+            client.close();
+        });
+
         client.on("close", (code, reason) => {
             console.log(`Twitch WebSocket ${this._websocketSessionID || "unknown"} closed: ${code} ${reason.toString()}`);
 
-            if (!this._reconnecting && client === this._websocketClient) {
-                if (code === 1000) {
-                    setTimeout(() => {
-                        this.reconnect(url);
-                    }, 1000);
-                } else {
-                    // For other close codes, wait a bit longer
-                    setTimeout(() => {
-                        this.reconnect(url);
-                    }, 5000);
-                }
+            if (client === this._mainWebSocketClient && code !== 1000) {
+                this._reconnecting = false;
+                this._reconnectInterval = Math.min(this._reconnectInterval * 2, 60000);
+                console.warn(`Trying to reconnect in ${this._reconnectInterval/1000}s...`);
+                setTimeout(() => {
+                    this.reconnect();
+                }, this._reconnectInterval);
             }
         });
-
-        return client;
     }
 
     reconnect(url=this._defaultWebSocketURL) {
@@ -85,7 +84,7 @@ export class TwitchService {
 
         if (this._isReconnectEvent) {
             // Make a reference to the old WebSocket client
-            this._oldWebSocketClient = this._websocketClient;
+            this._oldWebSocketClient = this._mainWebSocketClient;
         } else {
             // Close existing connection
             this.cleanupAll();
@@ -94,7 +93,7 @@ export class TwitchService {
 
         console.log(`Twitch WebSocket ${this._websocketSessionID || "unknown"} reconnecting with url: ${url}`);
         // Make a new WebSocket client
-        this._websocketClient = this.start(url);
+        this.connect(url);
     }
 
     cleanupAll() {
@@ -111,16 +110,16 @@ export class TwitchService {
     }
 
     cleanupMainConnection() {
-        if (this._websocketClient) {
+        if (this._mainWebSocketClient) {
             console.log("Cleaning up main Twitch WebSocket connection");
-            this._websocketClient.removeAllListeners();
+            this._mainWebSocketClient.removeAllListeners();
 
-            if (this._websocketClient.readyState === WebSocket.OPEN ||
-                this._websocketClient.readyState === WebSocket.CONNECTING) {
-                this._websocketClient.close(1000, "Cleaning up");
+            if (this._mainWebSocketClient.readyState === WebSocket.OPEN ||
+                this._mainWebSocketClient.readyState === WebSocket.CONNECTING) {
+                this._mainWebSocketClient.close(1000, "Cleaning up");
             }
 
-            this._websocketClient = null;
+            this._mainWebSocketClient = null;
         }
     }
 
@@ -136,6 +135,10 @@ export class TwitchService {
 
             this._oldWebSocketClient = null;
         }
+    }
+
+    resetReconnectInterval() {
+        this._reconnectInterval = 1000;
     }
 
     async handleMessages(data) {
@@ -156,9 +159,6 @@ export class TwitchService {
 
                 this._websocketSessionID = data.payload.session.id;
                 this._keepaliveTimeoutSeconds = data.payload.session.keepalive_timeout_seconds;
-                if (this._reconnecting) {
-                    this._reconnecting = false;
-                }
 
                 if (!this._isReconnectEvent) {
                     console.log("Registering EventSub listeners for new connection");
@@ -166,6 +166,7 @@ export class TwitchService {
                 }
 
                 this._isReconnectEvent = false;
+
                 await this.startHeartbeatMonitor();
                 break;
             case "session_keepalive":
@@ -216,14 +217,11 @@ export class TwitchService {
                 break;
             case "revocation":
                 console.warn("Recieved revocation message from Twitch EventSub WebSocket", data.payload);
-                if (!this._reconnecting) {
-                    setTimeout(() => {
-                        this.reconnect();
-                    }, 2000);
-                }
+                this.reconnect();
                 break;
             default:
                 console.warn("Unhandled message type", data.metadata.message_type);
+                break;
         }
     }
 
