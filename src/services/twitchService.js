@@ -54,7 +54,7 @@ export class TwitchService {
 
         client.on("error", (error) => {
             console.warn(`Twitch WebSocket ${this._websocketSessionID || "unknown"} error: ${error}`);
-            client.close();
+            client.close(4008);
         });
 
         client.on("close", (code, reason) => {

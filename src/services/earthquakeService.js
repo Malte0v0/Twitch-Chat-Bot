@@ -40,7 +40,7 @@ export class EarthquakeService {
 
         this._websocketClient.on("error", (error) => {
             console.error(error);
-            this._websocketClient.close(1011);
+            this._websocketClient.close(4008);
         });
 
         this._websocketClient.on("close", (code, reason) => {
