@@ -6,49 +6,59 @@ export class WeatherService {
         this._weatherApi = process.env.WEATHER_API;
     }
 
-    async weatherCommand(messageText, data) {
+    parseCommand(messageText) {
         const pattern = new RegExp(`\\${this._commandPrefix}weather (.+)`);
         const match = messageText.match(pattern);
-
+    
         if (!match) {
             return;
         }
-
+    
         const cityName = match[1];
+        return cityName;
+    }
+
+    parseWeatherJson(weatherJson) {
+        const weather = weatherJson.current;
+
+        const parsed = {
+            tempC: weather.temp,
+            tempF: ((temp * 9/5) + 32).toFixed(2),
+            feelsLikeC: weather.feels_like,
+            feelsLikeF: ((weather.feels_like * 9/5) + 32).toFixed(2),
+            pressure: weather.pressure,
+            humidity: weather.humidity,
+            uvi: weather.uvi,
+            clouds: weather.clouds,
+            windSpeed: weather.wind_speed,
+            alert: weatherJson.alerts ? `⚠️ Alert: ${weatherJson.alerts.slice(-1)[0].event}` : "",
+            emoji: this.getWeatherEmoji(weather.weather[0]),
+        }
+
+        return parsed;
+    }
+
+    async weatherCommand(messageText, data) {
         const sender = data.payload.event.chatter_user_login.toLowerCase();
-        const weatherReturn = await this.getWeather(cityName);
-        if (!weatherReturn) {
+        const cityName = this.parseCommand(messageText);
+
+        const {geocode, weatherJson} = await this.getWeather(cityName);
+        if (!geocode || !weatherJson) {
             return;
         }
-        const geocode = weatherReturn.geocode;
-        const weatherJson = weatherReturn.data;
 
-        // Parse Json
-        const weather = weatherJson.current;
-        const temp = weather.temp;
-        const tempF = ((temp * 9/5) + 32).toFixed(2);
-        const feelsLike = weather.feels_like;
-        const feelsLikeF = ((feelsLike * 9/5) + 32).toFixed(2);
-        const pressure = weather.pressure;
-        const humidity = weather.humidity;
-        const dewPoint = weather.dew_point;
-        const uvi = weather.uvi;
-        const clouds = weather.clouds;
-        const visibility = weather.visibility;
-        const windSpeed = weather.wind_speed;
-
-        let alert = "";
-        if (weatherJson.alerts) {
-            alert = `⚠️ Alert: ${weatherJson.alerts.slice(-1)[0].event}`;
-        }
+        const weather = this.parseWeatherJson(weatherJson);
 
         const city = geocode.name;
         const country = geocode.country;
-        const emoji = this.getWeatherEmoji(weather.weather[0]);
         
-        await this._chatService.sendChatMessage(`@${sender}, ${city}, ${country} (now): ${emoji} ${temp}°C (${tempF}°F), feels like ${feelsLike}°C (${feelsLikeF}°F). \
-            UV index: ${uvi}. Cloud cover: ${clouds}%. \
-            Wind speed: ${windSpeed} m/s. Humidity: ${humidity}%. Air pressure: ${pressure} hPa. ${alert}`);
+        await this._chatService.sendChatMessage(
+            `@${sender}, ${city}, ${country} (now): ${weather.emoji} ${weather.tempC}°C (${weather.tempF}°F), \
+            feels like ${weather.feelsLikeC}°C (${weather.feelsLikeF}°F). \
+            UV index: ${weather.uvi}. Cloud cover: ${weather.clouds}%. \
+            Wind speed: ${weather.windSpeed} m/s. Humidity: ${weather.humidity}%. \
+            Air pressure: ${weather.pressure} hPa. ${weather.alert}`
+        );
 
     }
 

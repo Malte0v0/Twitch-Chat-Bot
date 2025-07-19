@@ -248,13 +248,12 @@ export class TwitchService {
                 })
             });
 
+            const data = await response.json();
+            
             if (response.status !== 202) {
-                const data = await response.json();
                 console.error("Failed to subscribe to channel.chat.message. API call returned status code " + response.status);
                 console.error(data);
-                process.exit(1);
             } else {
-                const data = await response.json();
                 console.log(`Subscribed to channel.chat.message [${data.data[0].id}]`);
             }
         } catch (error) {
