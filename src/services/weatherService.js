@@ -23,7 +23,7 @@ export class WeatherService {
 
         const parsed = {
             tempC: weather.temp,
-            tempF: ((temp * 9/5) + 32).toFixed(2),
+            tempF: ((weather.temp * 9/5) + 32).toFixed(2),
             feelsLikeC: weather.feels_like,
             feelsLikeF: ((weather.feels_like * 9/5) + 32).toFixed(2),
             pressure: weather.pressure,
@@ -42,7 +42,8 @@ export class WeatherService {
         const sender = data.payload.event.chatter_user_login.toLowerCase();
         const cityName = this.parseCommand(messageText);
 
-        const {geocode, weatherJson} = await this.getWeather(cityName);
+        const [geocode, weatherJson] = await this.getWeather(cityName);
+
         if (!geocode || !weatherJson) {
             return;
         }
@@ -111,8 +112,8 @@ export class WeatherService {
             const response = await fetch(`https://api.openweathermap.org/data/3.0/onecall?lat=${geocode.lat}&lon=${geocode.lon}&appid=${this._weatherApi}&units=metric`);
             if (!response.ok) throw new Error("Network error:" + response.statusText);
             const data = await response.json();
-
-            return {geocode, data};
+            
+            return [geocode, data];
         } catch (error) {
             console.warn(error);
         }
