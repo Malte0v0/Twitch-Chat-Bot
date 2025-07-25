@@ -83,7 +83,6 @@ export class EarthquakeService {
         // Too weak
         if (mag < this._minMag) return false;
 
-        console.debug(`Quake is more than magnitude ${this._minMag.toString()}`);
         console.debug(`Mag: ${mag}, Depth: ${depthKm}, Lat: ${lat}, Lon: ${lon}`);
         
         // Very large
@@ -109,24 +108,26 @@ export class EarthquakeService {
             `Alarm 🗻 ALERT Magnitude ${mag.toFixed(1)} ${magType} quake near ${region}`
         );
     }
-
+    // Make this check the nearest 10 or something places and check the population
     async getDistance(lat, lon) {
         try {
             const response = await fetch(
-                `http://api.geonames.org/findNearbyPlaceNameJSON?lat=${lat}&lng=${lon}&radius=300&maxRows=1&username=${this._geoCodeApi}`
+                `http://api.geonames.org/findNearbyPlaceNameJSON?lat=${lat}&lng=${lon}&radius=300&maxRows=100&username=${this._geoCodeApi}`
             );
             const data = await response.json();
 
-            if (!data || !data.geonames || !data.geonames[0].distance) {
+            if (!data || !data.geonames || !data.geonames[0]?.distance) {
                 console.log(data);
-                return null;
+                return;
             }
 
-            const geoNames = data.geonames;
-            const distance = Number(geoNames[0].distance);
-
-            return distance;
-
+            for (const place of data.geonames) {
+                if (place.population > 500) {
+                    console.debug(`${place.name}, ${place.countryName}`);
+                    console.debug(`Population: ${place.population} Distance: ${place.distance}km`);
+                    return Number(place.distance);
+                }
+            }
         } catch (error) {
             console.log(error);
         }
