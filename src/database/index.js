@@ -20,5 +20,18 @@ export function initializeDatabase(db) {
         is_afk INTEGER NOT NULL DEFAULT 0,
         is_asleep INTEGER NOT NULL DEFAULT 0
         )        
+    `);	
+
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS earthquakes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        unid TEXT NOT NULL,
+        mag REAL,
+        depth REAL,
+        lat REAL,
+        lon REAL,
+        region TEXT,
+        data TEXT
+        )        
     `);
 }

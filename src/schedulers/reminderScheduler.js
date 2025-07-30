@@ -173,7 +173,7 @@ export class ReminderScheduler {
             reminderDict.message,
             triggerTime,
             currentTime
-        )
+        );
         const rowId = result.lastInsertRowid;
         
         const reminder = {

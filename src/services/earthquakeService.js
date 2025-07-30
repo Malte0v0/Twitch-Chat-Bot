@@ -1,8 +1,10 @@
 import WebSocket from "ws";
 
 export class EarthquakeService {
-    constructor(chatService) {
+    constructor(chatService, db) {
         this._chatService = chatService;
+        this._db = db;
+
         this._websocketUrl = "wss://www.seismicportal.eu/standing_order/websocket"
         this._geoCodeApi = process.env.GEOCODE_API;
         this.connect();
@@ -55,6 +57,19 @@ export class EarthquakeService {
         });
     }
 
+    insertToDb(info, data) {
+        const payload = JSON.stringify(data);
+
+        const insert = this._db.prepare(`
+            INSERT INTO earthquakes (unid, mag, depth, lat, lon, region, data)
+            VALUES (?,?,?,?,?,?,?)
+        `);
+        const result = insert.run(info.id, info.mag, info.depthKm, info.lat, info.lon, info.region, payload);
+        if (!result.lastInsertRowid) {
+            console.log("Error inserting earthquake in to db:", result, data);
+        }
+    }
+
     async handleMessage(data) {
         try {
             const action = data.action;
@@ -63,27 +78,30 @@ export class EarthquakeService {
                 return;
             }
 
-            const id = data.id;
+            const properties = data.data.properties;
+            const info = {
+                "id": data.data.id,
+                "lat": Number(properties.lat),
+                "lon": Number(properties.lon),
+                "depthKm": Number(properties.depth),
+                "mag": Number(properties.mag),
+                "magType": properties.magtype,
+                "region": properties.flynn_region
+            }
 
-            if (this._notifiedQuakes.has(id)) {
-                console.log(id, "has already been notified");
+            this.insertToDb(info, data);
+
+            if (this._notifiedQuakes.has(info.id)) {
+                console.log(info.id, "has already been notified");
                 console.log(data);
                 return;
             }
-
-            const properties = data.data.properties;
-            const lat = Number(properties.lat);
-            const lon = Number(properties.lon);
-            const depthKm = Number(properties.depth);
-            const mag = Number(properties.mag);
-            const magType = properties.magtype
-            const region = properties.flynn_region;
             
-            if (await this.shouldSend(mag, depthKm, lat, lon)) {
-                this.sendWarning(mag, magType, region);
-                this._notifiedQuakes.add(id);
+            if (await this.shouldSend(info.mag, info.depthKm, info.lat, info.lon)) {
+                this.sendWarning(info.mag, info.magType, info.region);
+                this._notifiedQuakes.add(info.id);
             }
-
+            
         } catch (error) {
             console.log(data);
             console.warn(error);

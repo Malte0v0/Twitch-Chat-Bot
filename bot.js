@@ -5,7 +5,6 @@ import { initializeDatabase } from "./src/database/index.js";
 import { AuthService } from "./src/services/authService.js"
 import { ChatService } from "./src/services/chatService.js";
 import { EarthquakeService } from "./src/services/earthquakeService.js";
-import { TruthService } from "./src/services/truthService.js";
 import { Commands } from "./src/commands/index.js";
 import { TwitchService } from "./src/services/twitchService.js";
 
@@ -22,8 +21,7 @@ async function main() {
 	const authService = new AuthService(process.env.OAUTH_TOKEN, process.env.REFRESH_TOKEN);
 	await authService.getAuth();
 	const chatService = new ChatService(authService);
-	const earthquakeService = new EarthquakeService(chatService);
-	// const truthService = new TruthService(chatService);
+	const earthquakeService = new EarthquakeService(chatService, db);
 	const commands = new Commands(chatService, db, commandPrefix);
 	const twitchService = new TwitchService(authService, chatService, commands, commandPrefix);
 
