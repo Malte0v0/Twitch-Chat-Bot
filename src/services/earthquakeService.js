@@ -11,6 +11,8 @@ export class EarthquakeService {
         this._maxDistKm = 50; // km
 
         this._reconnectInterval = 1000;
+
+        this._notifiedQuakes = new Set();
     }
 
     connect() {
@@ -56,7 +58,16 @@ export class EarthquakeService {
     async handleMessage(data) {
         try {
             const action = data.action;
-            if (action !== "create") {
+            if (!["create", "update"].includes(action)) {
+                console.log(data);
+                return;
+            }
+
+            const id = data.id;
+
+            if (this._notifiedQuakes.has(id)) {
+                console.log(id, "has already been notified");
+                console.log(data);
                 return;
             }
 
@@ -67,10 +78,10 @@ export class EarthquakeService {
             const mag = Number(properties.mag);
             const magType = properties.magtype
             const region = properties.flynn_region;
-            const time = new Date(properties.time);
             
             if (await this.shouldSend(mag, depthKm, lat, lon)) {
                 this.sendWarning(mag, magType, region);
+                this._notifiedQuakes.add(id);
             }
 
         } catch (error) {
