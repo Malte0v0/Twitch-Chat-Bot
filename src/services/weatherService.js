@@ -50,7 +50,7 @@ export class WeatherService {
             WHERE sender = ?
         `).get(sender);
 
-        return location;
+        return location.location;
     }
 
     async weatherCommand(messageText, data) {
@@ -60,6 +60,8 @@ export class WeatherService {
         if (!cityName) {
             cityName = this.noCityCommand(sender);
         };
+
+        console.log(cityName);
 
         const [geocode, weatherJson] = await this.getWeather(cityName);
 

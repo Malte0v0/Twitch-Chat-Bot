@@ -37,8 +37,7 @@ export function initializeDatabase(db) {
 
     db.exec(`
         CREATE TABLE IF NOT EXISTS location (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sender TEXT NOT NULL,
+        sender TEXT PRIMARY KEY NOT NULL,
         location TEXT NOT NULL
         )        
     `);
