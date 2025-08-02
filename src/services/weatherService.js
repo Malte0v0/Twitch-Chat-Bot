@@ -1,13 +1,19 @@
 export class WeatherService {
-    constructor(commandPrefix, chatService) {
+    constructor(commandPrefix, db, chatService) {
         this._commandPrefix = commandPrefix;
+        this._db = db;
         this._chatService = chatService;
 
         this._weatherApi = process.env.WEATHER_API;
     }
 
-    parseCommand(messageText) {
-        const pattern = new RegExp(`\\${this._commandPrefix}weather (.+)`);
+    parseCommand(messageText, setLocation=false) {
+        let pattern;
+        if (setLocation) {
+            pattern = new RegExp(`\\${this._commandPrefix}location (.+)`);
+        } else {
+            pattern = new RegExp(`\\${this._commandPrefix}weather (.+)`);
+        }
         const match = messageText.match(pattern);
     
         if (!match) {
@@ -38,9 +44,22 @@ export class WeatherService {
         return parsed;
     }
 
+    noCityCommand(sender) {
+        const location = this._db.prepare(`
+            SELECT location FROM location
+            WHERE sender = ?
+        `).get(sender);
+
+        return location;
+    }
+
     async weatherCommand(messageText, data) {
         const sender = data.payload.event.chatter_user_login.toLowerCase();
-        const cityName = this.parseCommand(messageText);
+        let cityName = this.parseCommand(messageText);
+
+        if (!cityName) {
+            cityName = this.noCityCommand(sender);
+        };
 
         const [geocode, weatherJson] = await this.getWeather(cityName);
 
@@ -61,6 +80,26 @@ export class WeatherService {
             Air pressure: ${weather.pressure} hPa. ${weather.alert}`
         );
 
+    }
+
+    async locationCommand(messageText, data) {
+        const sender = data.payload.event.chatter_user_login.toLowerCase();
+        const cityName = this.parseCommand(messageText, true);
+
+        if (!cityName) {
+            console.log(sender, cityName, "failed to get city name");
+            return;
+        }
+
+        const insert = this._db.prepare(`
+            INSERT OR REPLACE INTO location (sender, location)
+            VALUES (?,?)
+        `);
+        const result = insert.run(sender, cityName);
+
+        if (result.lastInsertRowid) {
+            await this._chatService.sendChatMessage(`@${sender}, your default location has been set to ${cityName}`);
+        }
     }
 
     getWeatherEmoji(weather) {

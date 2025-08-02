@@ -34,4 +34,12 @@ export function initializeDatabase(db) {
         data TEXT
         )        
     `);
+
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS location (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sender TEXT NOT NULL,
+        location TEXT NOT NULL
+        )        
+    `);
 }

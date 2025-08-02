@@ -11,7 +11,7 @@ export class Commands {
 
         this._reminderScheduler = new ReminderScheduler(chatService, db, commandPrefix);
         this._statusService = new StatusService(chatService, db, commandPrefix);
-        this._weatherService = new WeatherService(commandPrefix, chatService);
+        this._weatherService = new WeatherService(commandPrefix, db, chatService);
         this._newsService = new NewsService(commandPrefix, chatService);
         this._quotesService = new QuotesService(chatService);
 
@@ -30,6 +30,9 @@ export class Commands {
                 await this._weatherService.weatherCommand(messageText, data).catch(error => {
                     console.warn("Weather command failed:", error);
                 });
+                break;
+            case "location":
+                await this._weatherService.locationCommand(messageText, data);
                 break;
             case "news":
                 await this._newsService.newsCommand();
