@@ -126,7 +126,7 @@ export class EarthquakeService {
         const scaledMaxDistKm = scale * this._maxDistKm;
 
         if (distKm <= scaledMaxDistKm) {
-            return true;   
+            return true;
         }
 
         return false;
