@@ -26,6 +26,7 @@ export function initializeDatabase(db) {
         CREATE TABLE IF NOT EXISTS earthquakes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         unid TEXT NOT NULL,
+        notified INTEGER NOT NULL DEFAULT 0,
         mag REAL,
         depth REAL,
         lat REAL,

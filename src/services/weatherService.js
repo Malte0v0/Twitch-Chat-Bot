@@ -12,7 +12,7 @@ export class WeatherService {
         if (setLocation) {
             pattern = new RegExp(`\\${this._commandPrefix}location (.+)`);
         } else {
-            pattern = new RegExp(`\\${this._commandPrefix}weather (.+)`);
+            pattern = new RegExp(`\\${this._commandPrefix}(?:w|weather) (.+)`);
         }
         const match = messageText.match(pattern);
     

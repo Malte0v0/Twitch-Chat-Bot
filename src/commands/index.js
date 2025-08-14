@@ -26,7 +26,7 @@ export class Commands {
             case "unset":
                 await this._reminderScheduler.unsetReminderCommand(messageText, data);
                 break;
-            case "weather":
+            case "weather": case "w":
                 await this._weatherService.weatherCommand(messageText, data).catch(error => {
                     console.warn("Weather command failed:", error);
                 });

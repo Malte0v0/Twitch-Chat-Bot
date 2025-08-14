@@ -15,6 +15,18 @@ export class EarthquakeService {
         this._reconnectInterval = 1000;
 
         this._notifiedQuakes = new Set();
+        this.populateNotified();
+    }
+
+    populateNotified() {
+        const rows = this._db.prepare(`
+            SELECT unid FROM earthquakes
+            WHERE notified = 1
+        `).all();
+        
+        for (const { unid } of rows) {
+            this._notifiedQuakes.add(unid);
+        }
     }
 
     connect() {
@@ -99,13 +111,20 @@ export class EarthquakeService {
             
             if (await this.shouldSend(info.mag, info.depthKm, info.lat, info.lon)) {
                 this.sendWarning(info.mag, info.magType, info.region);
-                this._notifiedQuakes.add(info.id);
+                this.updateNotified(info.id);
             }
             
         } catch (error) {
             console.log(data);
             console.warn(error);
         }
+    }
+
+    updateNotified(id) {
+        this._notifiedQuakes.add(id);
+        this._db.prepare(`
+            UPDATE earthquakes SET notified = 1 WHERE unid = ?
+        `).run(id);
     }
 
     async shouldSend(mag, depthKm, lat, lon) {
