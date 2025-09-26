@@ -10,7 +10,8 @@ export class EarthquakeService {
         this.connect();
 
         this._minMag = 6;
-        this._maxDistKm = 50; // km
+        this._maxDistKm = 50;
+        this._maxDelayMs = 1*60*60*1000; // 1h
 
         this._reconnectInterval = 1000;
 
@@ -93,6 +94,7 @@ export class EarthquakeService {
             const properties = data.data.properties;
             const info = {
                 "id": data.data.id,
+                "time": properties.time,
                 "lat": Number(properties.lat),
                 "lon": Number(properties.lon),
                 "depthKm": Number(properties.depth),
@@ -109,7 +111,7 @@ export class EarthquakeService {
                 return;
             }
             
-            if (await this.shouldSend(info.mag, info.depthKm, info.lat, info.lon)) {
+            if (await this.shouldSend(info.mag, info.time, info.depthKm, info.lat, info.lon)) {
                 this.sendWarning(info.mag, info.magType, info.region);
                 this.updateNotified(info.id);
             }
@@ -127,7 +129,10 @@ export class EarthquakeService {
         `).run(id);
     }
 
-    async shouldSend(mag, depthKm, lat, lon) {
+    async shouldSend(mag, time, depthKm, lat, lon) {
+        // Too long ago
+        if ((Date.now() - Date.parse(time)) > this._maxDelayMs) return false; // 1 hour ago
+
         // Too weak
         if (mag < this._minMag) return false;
 
@@ -153,7 +158,7 @@ export class EarthquakeService {
 
     async sendWarning(mag, magType, region) {
         await this._chatService.sendChatMessage(
-            `Alarm 🗻 ALERT Magnitude ${mag.toFixed(1)} ${magType} quake near ${region}`
+            `Alarm ALERT ${mag.toFixed(1)} ${magType} earthquake near ${region}`
         );
     }
     // Make this check the nearest 10 or something places and check the population
