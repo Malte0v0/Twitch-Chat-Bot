@@ -1,10 +1,18 @@
 export class TimeService {
     constructor(chatService) {
         this._chatService = chatService;
+
+        this._options = {
+            timeZone: "",
+            timeZoneName: "short",
+            hour: "2-digit",
+            minute: "2-digit"
+        }
     }
 
     getTimeString(timezone) {
-        return new Date().toLocaleTimeString("en-US", {timeZone: timezone});
+        this._options.timeZone = timezone;
+        return new Date().toLocaleTimeString("en-US", this._options);
     }
 
     async timeCommand() {
