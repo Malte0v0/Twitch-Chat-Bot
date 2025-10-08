@@ -20,6 +20,7 @@ export class ReminderScheduler {
         this._timeouts.forEach((timeout) => {clearTimeout(timeout)});
 
         this._reminders = this.undeliveredReminders;
+        this._onSightReminders = this.dueOnSightReminders;
 
         const now = Date.now();
 
@@ -28,14 +29,15 @@ export class ReminderScheduler {
             if (delay <= 0) {
                 this.sendReminder(reminder)
                     .catch((error) => {console.error(error)});
-                return;
+            } else {
+                this.scheduleReminder(delay, reminder);
             }
 
-            this.scheduleReminder(delay, reminder);
         });
     }
 
     scheduleReminder(delay, reminder) {
+        this.removeFromArray(this._reminders, reminder);
         this._reminders.push(reminder);
 
         const timeout = setTimeout(async () => {
@@ -54,7 +56,13 @@ export class ReminderScheduler {
     }
 
     scheduleOnSightReminder(reminder) {
+        this.removeFromArray(this._onSightReminders, reminder);
         this._onSightReminders.push(reminder);
+    }
+
+    removeFromArray(variable, item) {
+        const index = variable.indexOf(item);
+        if (index > -1) variable.splice(index, 1);
     }
 
     async sendReminder(reminder) {
@@ -99,6 +107,8 @@ export class ReminderScheduler {
     }
 
     setReminderDelivered(reminder) {
+        this.removeFromArray(this._reminders, reminder);
+        this.removeFromArray(this._onSightReminders, reminder);
         this._db.prepare(`
             UPDATE reminders SET delivered = 1 WHERE id = ?
         `).run(reminder.id);
@@ -196,6 +206,7 @@ export class ReminderScheduler {
                 await this._chatService.sendChatMessage(`@${sender}, I will remind ${target} in ${timeUntil} (ID ${rowId})`);
             }
         } else { // On sight reminders
+            this.scheduleOnSightReminder(reminder);
             if (sender === target){
                 await this._chatService.sendChatMessage(`@${sender}, I will remind you the next time you type in chat (ID ${rowId})`);
             } else {
@@ -223,10 +234,17 @@ export class ReminderScheduler {
         if (!rowId) {
             return;
         }
-        
+
         let rowIdExists = false;
         for (const reminder of this._reminders) {
             if (reminder.id.toString() === rowId.toString()) {
+                this.removeFromArray(this._reminders, reminder);
+                rowIdExists = true;
+            }
+        }
+        for (const reminder of this._onSightReminders) {
+            if (reminder.id.toString() === rowId.toString()) {
+                this.removeFromArray(this._onSightReminders, reminder);
                 rowIdExists = true;
             }
         }
