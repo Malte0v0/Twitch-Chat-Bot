@@ -7,6 +7,7 @@ import { ChatService } from "./src/services/chatService.js";
 import { EarthquakeService } from "./src/services/earthquakeService.js";
 import { Commands } from "./src/commands/index.js";
 import { TwitchService } from "./src/services/twitchService.js";
+import { NitterService } from "./src/services/nitterService.js";
 
 
 const db = new Database("database.db", {timeout: 1000});
@@ -23,7 +24,8 @@ async function main() {
 	const chatService = new ChatService(authService);
 	const earthquakeService = new EarthquakeService(chatService, db);
 	const commands = new Commands(chatService, db, commandPrefix);
-	const twitchService = new TwitchService(authService, chatService, commands, commandPrefix);
+	const nitterService = new NitterService(chatService);
+	const twitchService = new TwitchService(authService, chatService, commands, nitterService, commandPrefix);
 
 	setInterval(() => {
 		authService.refreshOAuthToken().catch(console.error);

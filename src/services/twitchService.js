@@ -3,10 +3,11 @@ import { getHumanTimeFromDate } from "../utils/timeUtils.js";
 import { sanitizeInput } from "../utils/inputUtils.js";
 
 export class TwitchService {
-    constructor(authService, chatService, commands, commandPrefix) {
+    constructor(authService, chatService, commands, nitterService, commandPrefix) {
         this._authService = authService;
         this._chatService = chatService;
         this._commands = commands;
+        this._nitterService = nitterService;
         this._commandPrefix = commandPrefix;
         
         this._defaultWebSocketURL = "wss://eventsub.wss.twitch.tv/ws";
@@ -206,6 +207,10 @@ export class TwitchService {
                             console.error(error);
                         }
                         // COMMANDS END
+
+                        // NITTER START
+                        this._nitterService.sendNitterIfX(messageText);
+                        // NITTER END
                         break;
                 }
                 break;
