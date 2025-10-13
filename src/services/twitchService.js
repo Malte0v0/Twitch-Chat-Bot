@@ -1,13 +1,14 @@
 import WebSocket from "ws";
 import { getHumanTimeFromDate } from "../utils/timeUtils.js";
 import { sanitizeInput } from "../utils/inputUtils.js";
+import { event } from "../utils/events.js";
 
 export class TwitchService {
-    constructor(authService, chatService, commands, nitterService, commandPrefix) {
+    constructor(authService, chatService, nitterService, commands, commandPrefix) {
         this._authService = authService;
         this._chatService = chatService;
-        this._commands = commands;
         this._nitterService = nitterService;
+        this._commands = commands;
         this._commandPrefix = commandPrefix;
         
         this._defaultWebSocketURL = "wss://eventsub.wss.twitch.tv/ws";
@@ -180,16 +181,17 @@ export class TwitchService {
                         console.log(`MSG ${messageTime} #${data.payload.event.broadcaster_user_login} <${data.payload.event.chatter_user_login}> ${data.payload.event.message.text}`);
                         // Sanitize the message text
                         data.payload.event.message.text = sanitizeInput(data.payload.event.message.text);
-                        let messageText = data.payload.event.message.text.trim();
+                        const messageText = data.payload.event.message.text.trim();
+                        const sender = data.payload.event.chatter_user_login;
 
-                        if (["ggxgang_bank"].includes(data.payload.event.chatter_user_login)) return;
+                        if (["ggxgang_bank"].includes(sender)) return;
 
                         // AFK AND SLEEPING START
                         await this._commands.handleAfkAsleep(messageText, data);
                         // AFK AND SLEEPING END
 
                         // ON SIGHT REMINDERS START
-                        await this._commands.handleOnSightDueReminders(data);
+                        event.emit("user_appeared", sender);
                         // ON SIGHT REMINDERS END
                         
                         // COMMANDS START
@@ -197,7 +199,6 @@ export class TwitchService {
                             if (messageText.toLowerCase().startsWith(this._commandPrefix)) {
                                 // The message is a command
                                 const match = messageText.toLowerCase().match(this._commandRegex);
-
                                 if (match && match[1]) {
                                     const command = match[1];
                                     await this._commands.handleCommand(command, messageText, data);

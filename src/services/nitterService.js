@@ -8,7 +8,6 @@ export class NitterService {
 
     async sendNitterIfX(messageText) {
         const matches = messageText.match(this._xRegex)
-        console.log()
         if (matches) {
             for (const match of matches) {
                 const result = match.replace("x.com", "nitter.net")

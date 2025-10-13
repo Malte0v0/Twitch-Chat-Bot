@@ -13,6 +13,8 @@ export class AuthService {
 
         this._clientId = process.env.CLIENT_ID;
         this._clientSecret = process.env.CLIENT_SECRET;
+
+        this.getAuth();
     }
 
     get oauthToken() {return this._oauthToken;}

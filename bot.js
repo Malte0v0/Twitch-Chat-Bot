@@ -1,31 +1,27 @@
-import Database from "better-sqlite3";
-import "dotenv/config";
-
-import { initializeDatabase } from "./src/database/index.js";
 import { AuthService } from "./src/services/authService.js"
 import { ChatService } from "./src/services/chatService.js";
 import { EarthquakeService } from "./src/services/earthquakeService.js";
-import { Commands } from "./src/commands/index.js";
 import { TwitchService } from "./src/services/twitchService.js";
 import { NitterService } from "./src/services/nitterService.js";
-
-
-const db = new Database("database.db", {timeout: 1000});
+import { Commands } from "./src/core/commands.js";
+import { Scheduler } from "./src/core/scheduler.js"
+import { ChatDatabase } from "./src/core/chatDatabase.js";
+import "dotenv/config";
 
 const commandPrefix = "$"
-
 const REFRESH_INTERVAL_MS = 2 * 60 * 60 * 1000;
 
 async function main() {
-	initializeDatabase(db);
-
+    const db = new ChatDatabase();
+    const scheduler = new Scheduler();
 	const authService = new AuthService(process.env.OAUTH_TOKEN, process.env.REFRESH_TOKEN);
-	await authService.getAuth();
 	const chatService = new ChatService(authService);
+	const commands = new Commands(chatService, db, scheduler, commandPrefix);
+
 	const earthquakeService = new EarthquakeService(chatService, db);
-	const commands = new Commands(chatService, db, commandPrefix);
 	const nitterService = new NitterService(chatService);
-	const twitchService = new TwitchService(authService, chatService, commands, nitterService, commandPrefix);
+	
+    const twitchService = new TwitchService(authService, chatService, nitterService, commands, commandPrefix);
 
 	setInterval(() => {
 		authService.refreshOAuthToken().catch(console.error);

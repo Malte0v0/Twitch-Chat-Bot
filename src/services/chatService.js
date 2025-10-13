@@ -3,7 +3,8 @@ import { splitLength } from "../utils/inputUtils.js"
 
 export class ChatService {
     constructor(authService) {
-        this._authService = authService;
+        this.authService = authService;
+
         this._botUserId = "1225554271";
         // p5vrq 1251520948
         // 527762906
@@ -64,8 +65,8 @@ export class ChatService {
             const response = await fetch('https://api.twitch.tv/helix/chat/messages', {
                 method: "POST",
                 headers: {
-                    "Authorization": "Bearer " + this._authService.oauthToken,
-                    "Client-Id": this._authService.clientId,
+                    "Authorization": "Bearer " + this.authService.oauthToken,
+                    "Client-Id": this.authService.clientId,
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
@@ -74,10 +75,9 @@ export class ChatService {
                     message: message
                 })
             });
-    
             
             if (response.status === 401 || response.status === 403) {
-                await this._authService.refreshOAuthToken();
+                await this.authService.refreshOAuthToken();
                 return false;
             } else if (response.status === 429) {
                 console.log("Rate limit reached, retrying in 2 seconds...");
