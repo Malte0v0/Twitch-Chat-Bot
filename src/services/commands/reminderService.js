@@ -46,7 +46,7 @@ export class ReminderService {
 
     deliverUserReminder(sender) {
         for (const [id, reminder] of this.reminders.entries()) {
-            if (reminder.triggerTime === null && reminder.target === sender) {
+            if (reminder.triggerTime === null && reminder.target.toLowerCase() === sender.toLowerCase()) {
                 reminder.deliver();
                 this.reminders.delete(id);
             }
