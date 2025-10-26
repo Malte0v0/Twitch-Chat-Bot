@@ -98,17 +98,24 @@ export class ChatDatabase extends Database {
             VALUES (?,?,?,?,?)
         `);
 
-        const result = insert.run(
-            reminder.sender,
-            reminder.target,
-            reminder.message,
-            reminder.triggerTime,
-            reminder.createdAt
-        );
+        try {
+            const result = insert.run(
+                reminder.sender,
+                reminder.target,
+                reminder.message,
+                reminder.triggerTime,
+                reminder.createdAt
+            );
 
-        const rowId = result.lastInsertRowid;
+            const rowId = result.lastInsertRowid;
 
-        return rowId;
+            return rowId;
+        } catch (error) {
+            console.log("Error in chatdatabse saveReminder: " + error);
+            return null;
+        }
+
+
     }
 
     deleteReminder(user, reminder) {

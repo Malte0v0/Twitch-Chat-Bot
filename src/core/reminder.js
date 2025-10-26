@@ -16,8 +16,11 @@ export class Reminder {
     }
 
     init() {
-        this.schedule();
         this.rowId = this.db.saveReminder(this);
+        if (!this.rowId) {
+            return false;
+        }
+        this.schedule();
         this.notifyInit();
     }
 

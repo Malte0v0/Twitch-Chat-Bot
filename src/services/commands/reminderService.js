@@ -126,7 +126,10 @@ export class ReminderService {
     createReminder(data) {
         const reminderDict = this._parseData(data);
         const reminder = new Reminder(reminderDict, this.db, this.scheduler, this.notifier);
-        reminder.init();
+        const result = reminder.init();
+        if (!result) {
+            return;
+        }
         this.reminders.set(reminder.rowId, reminder);
     }
 
