@@ -44,7 +44,8 @@ export class ReminderService {
         this.reminders.delete(reminder.rowId);
     }
 
-    deliverUserReminder(sender) {
+    deliverUserReminder(data) {
+        const sender = data.payload.event.chatter_user_login;
         for (const [id, reminder] of this.reminders.entries()) {
             if (reminder.triggerTime === null && reminder.target.toLowerCase() === sender.toLowerCase()) {
                 reminder.deliver();

@@ -5,7 +5,6 @@ import { ReminderService } from "../services/commands/reminderService.js";
 import { TimeService } from "../services/commands/timeService.js";
 import { WeatherService } from "../services/commands/weatherService.js";
 import { Notifier } from "./notifier.js";
-import { msToHuman } from "../utils/timeUtils.js";
 
 export class Commands {
     constructor(chatService, db, scheduler, commandPrefix = "$") {
@@ -94,25 +93,4 @@ export class Commands {
         }
     }
 
-    async handleAfkAsleep(data) {
-        try {
-            const userId = data.payload.event.chatter_user_id;
-            const userLogin = data.payload.event.chatter_user_login;
-            const status = this._statusService.checkChatterStatus(userId);
-
-            if (status && (status.isAfk || status.isAsleep)) {
-                const timeSince = msToHuman(Date.now() - status.time); 
-                
-                if (status.isAfk) {
-                    this._statusService.toggleAfkStatus(userId);
-                    await this._chatService.sendChatMessage(`@${userLogin} is no longer AFK${status.message} (${timeSince})`);
-                } else if (status.isAsleep) {
-                    this._statusService.toggleAsleepStatus(userId);
-                    await this._chatService.sendChatMessage(`@${userLogin} is no longer sleeping${status.message} (${timeSince})`);
-                }
-            }
-        } catch (error) {
-            console.error(error);
-        }
-    }
 }

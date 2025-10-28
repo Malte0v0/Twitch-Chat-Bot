@@ -1,9 +1,50 @@
+import { event } from "../../utils/events.js";
+import { msToHuman } from "../../utils/timeUtils.js";
+
 export class StatusService {
     constructor(chatService, db, commandPrefix) {
         this._chatService = chatService;
         this._db = db;
 
         this._commandPrefix = commandPrefix;
+
+        this._startListening();
+    }
+
+    _startListening() {
+        event.on("user_appeared", this.handleAfkAsleep.bind(this));
+    }
+    
+    _stopListening() {
+        event.off("user_appeared", this.handleAfkAsleep.bind(this));
+    }
+
+    handleAfkAsleep(data) {
+        try {
+            const userId = data.payload.event.chatter_user_id;
+            const userLogin = data.payload.event.chatter_user_login;
+            const status = this.checkChatterStatus(userId);
+
+            if (status && (status.isAfk || status.isAsleep)) {
+                const timeSince = msToHuman(Date.now() - status.time); 
+                
+                if (status.isAfk) {
+                    this.toggleAfkStatus(userId);
+                    this._chatService.sendChatMessage(`@${userLogin} is no longer AFK${status.message} (${timeSince})`)
+                        .catch((error) => {
+                            console.log("Error when trying to send chat message in statusService: ", error);
+                        });
+                } else if (status.isAsleep) {
+                    this.toggleAsleepStatus(userId);
+                    this._chatService.sendChatMessage(`@${userLogin} is no longer sleeping${status.message} (${timeSince})`)
+                        .catch((error) => {
+                            console.log("Error when trying to send chat message in statusService: ", error);
+                        });;
+                }
+            }
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     getAfkOrAsleepUsernames() {

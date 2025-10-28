@@ -187,12 +187,10 @@ export class TwitchService {
                         if (["ggxgang_bank"].includes(sender)) return;
 
                         // AFK AND SLEEPING START
-                        await this._commands.handleAfkAsleep(data);
-                        // AFK AND SLEEPING END
-
                         // ON SIGHT REMINDERS START
-                        event.emit("user_appeared", sender);
+                        event.emit("user_appeared", data);
                         // ON SIGHT REMINDERS END
+                        // AFK AND SLEEPING END
                         
                         // COMMANDS START
                         try {

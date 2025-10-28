@@ -22,6 +22,7 @@ export class Reminder {
         }
         this.schedule();
         this.notifyInit();
+        return true;
     }
 
     schedule() {
