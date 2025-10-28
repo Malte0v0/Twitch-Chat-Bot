@@ -94,23 +94,11 @@ export class Commands {
         }
     }
 
-    async handleAfkAsleep(messageText, data) {
+    async handleAfkAsleep(data) {
         try {
             const userId = data.payload.event.chatter_user_id;
             const userLogin = data.payload.event.chatter_user_login;
             const status = this._statusService.checkChatterStatus(userId);
-            
-            const asleepOrAfkUsers = this._statusService.getAfkOrAsleepUsernames();
-            for (const user of asleepOrAfkUsers) {
-                if (messageText.toLowerCase().startsWith(`@${user}`)) {
-                    const asleepOrAfkUserStatus = this._statusService.checkChatterStatusByName(user);
-                    if (asleepOrAfkUserStatus.isAfk) {
-                        await this._chatService.sendChatMessage(`@${userLogin}, ${user} is currently AFK${asleepOrAfkUserStatus.message}`);
-                    } else if (asleepOrAfkUserStatus.isAsleep) {
-                        await this._chatService.sendChatMessage(`@${userLogin}, ${user} is currently sleeping${asleepOrAfkUserStatus.message}`);
-                    }
-                }
-            }
 
             if (status && (status.isAfk || status.isAsleep)) {
                 const timeSince = msToHuman(Date.now() - status.time); 
