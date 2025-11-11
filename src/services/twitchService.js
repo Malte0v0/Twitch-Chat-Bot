@@ -208,7 +208,7 @@ export class TwitchService {
                         // COMMANDS END
 
                         // NITTER START
-                        this._nitterService.sendNitterIfX(messageText);
+                        // this._nitterService.sendNitterIfX(messageText);
                         // NITTER END
                         break;
                 }
