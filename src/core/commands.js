@@ -5,6 +5,7 @@ import { ReminderService } from "../services/commands/reminderService.js";
 import { TimeService } from "../services/commands/timeService.js";
 import { WeatherService } from "../services/commands/weatherService.js";
 import { Notifier } from "./notifier.js";
+import { AWAY_STATUS } from "../../utils/awayStatus.js";
 
 export class Commands {
     constructor(chatService, db, scheduler, commandPrefix = "$") {
@@ -48,10 +49,13 @@ export class Commands {
                 await this._newsService.newsCommand();
                 break;
             case "afk":
-                await this._statusService.setUserStatus(messageText, data, "afk");
+                await this._statusService.setUserStatus(messageText, data, AWAY_STATUS.afk);
                 break;
             case "sleep":
-                await this._statusService.setUserStatus(messageText, data, "sleep");
+                await this._statusService.setUserStatus(messageText, data, AWAY_STATUS.asleep);
+                break;
+            case "shower":
+                await this._statusService.setUserStatus(messageText, data, AWAY_STATUS.showering);
                 break;
             case "quote":
                 await this._quotesService.quoteCommand();

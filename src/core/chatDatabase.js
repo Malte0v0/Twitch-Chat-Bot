@@ -26,8 +26,7 @@ export class ChatDatabase extends Database {
             user_name TEXT NOT NULL,
             time INTEGER NOT NULL,
             message TEXT NOT NULL,
-            is_afk INTEGER NOT NULL DEFAULT 0,
-            is_asleep INTEGER NOT NULL DEFAULT 0
+            is_away INTEGER NOT NULL DEFAULT 0
             )        
         `);	
 

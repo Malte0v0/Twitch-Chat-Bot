@@ -1,5 +1,6 @@
 import { event } from "../../utils/events.js";
 import { msToHuman } from "../../utils/timeUtils.js";
+import { AWAY_STATUS } from "../../utils/awayStatus.js";
 
 export class StatusService {
     constructor(chatService, db, commandPrefix) {
@@ -12,14 +13,14 @@ export class StatusService {
     }
 
     _startListening() {
-        event.on("user_appeared", this.handleAfkAsleep.bind(this));
+        event.on("user_appeared", this.handleAway.bind(this));
     }
     
     _stopListening() {
-        event.off("user_appeared", this.handleAfkAsleep.bind(this));
+        event.off("user_appeared", this.handleAway.bind(this));
     }
 
-    handleAfkAsleep(data) {
+    handleAway(data) {
         try {
             const userId = data.payload.event.chatter_user_id;
             const userLogin = data.payload.event.chatter_user_login;
@@ -47,51 +48,49 @@ export class StatusService {
         }
     }
 
-    getAfkOrAsleepUsernames() {
-        const query = this._db.prepare("SELECT user_name FROM chatter_status WHERE is_afk = 1 OR is_asleep = 1");
+    getAwayUsernames() { // not needed?
+        const query = this._db.prepare("SELECT user_name FROM chatter_status WHERE is_away != 0"); 
         const rows = query.all();
 
-        return rows.map(row => row.user_name);
+        return rows.map(row => row.userName);
+    }
+
+    _checkStatus(status) {
+        if (status) {
+            const {user_name: userName, time, message, is_afk: isAway} = status;
+            return {userName, time, message, isAway};
+        } else {
+            return null;
+        }
     }
 
     checkChatterStatusByName(userName) {
         const status = this._db.prepare(`
-        SELECT user_name, time, message, is_afk, is_asleep FROM chatter_status
+        SELECT user_name, time, message, is_away FROM chatter_status
         WHERE user_name = ?
         `).get(userName);
 
-        if (status) {
-            const {user_name: user_name, time: time, message: message, is_afk: isAfk, is_asleep: isAsleep} = status;
-            return {user_name, time, message, isAfk, isAsleep};
-        } else {
-            return null;
-        }
+        return this._checkStatus(status);
     }
 
     checkChatterStatus(userId) {
         const status = this._db.prepare(`
-        SELECT user_name, time, message, is_afk, is_asleep FROM chatter_status
+        SELECT user_name, time, message, is_away FROM chatter_status
         WHERE user_id = ?
         `).get(userId);
 
-        if (status) {
-            const {user_name: user_name, time: time, message: message, is_afk: isAfk, is_asleep: isAsleep} = status;
-            return {user_name, time, message, isAfk, isAsleep};
-        } else {
-            return null;
-        }
+        return this._checkStatus(status);
     }
 
-    toggleAfkStatus(userId, message = "") {
+    toggleAwayStatus(userId, awayState = 1, message = "") {
         this._db.prepare(`
-            UPDATE chatter_status SET is_afk = NOT is_afk, time = ?, message = ? WHERE user_id = ?
-        `).run(Date.now(), message, userId);
-    }
-
-    toggleAsleepStatus(userId, message = "") {
-        this._db.prepare(`
-            UPDATE chatter_status SET is_asleep = NOT is_asleep, time = ?, message = ? WHERE user_id = ?
-        `).run(Date.now(), message, userId);
+            UPDATE chatter_status
+            SET
+                is_away = CASE WHEN is_away = 0 THEN ? ELSE 0 END,
+                time = CASE WHEN is_away = 0 THEN ? ELSE NULL END,
+                message = CASE WHEN is_away = 0 THEN ? ELSE '' END
+            WHERE user_id = ?
+        `).run(awayState, Date.now(), message, userId);
     }
 
     insertChatterStatus(data) {
@@ -100,12 +99,12 @@ export class StatusService {
         const currentTime = Date.now()
 
         this._db.prepare(`
-        INSERT OR IGNORE INTO chatter_status (user_id, user_name, time, message, is_afk, is_asleep)
+        INSERT OR IGNORE INTO chatter_status (user_id, user_name, time, message, is_away)
         VALUES (?,?,?,?,?,?)
         `).run(userId, userLogin, currentTime, "", 0, 0);
     }
 
-    async setUserStatus(messageText, data, statusType) {
+    async setUserStatus(messageText, data, awayState = 1) {
         const userId = data.payload.event.chatter_user_id
         const userLogin = data.payload.event.chatter_user_login
         
@@ -116,19 +115,28 @@ export class StatusService {
         }
         
         // Get the afk or sleep message and format it in to a variable called message
-        const pattern = new RegExp(`\\${this._commandPrefix}${statusType} (.*)`)
+        const pattern = new RegExp(`\\${this._commandPrefix}${awayState} (.*)`)
         const match = messageText.match(pattern);
         let message = "";
         if (match && match[1]) {
             message = ": " + match[1].trim();
         }
 
-        if (statusType === "afk") {
-            this.toggleAfkStatus(userId, message);
-            await this._chatService.sendChatMessage(`${userLogin} is now AFK${message}`);
-        } else if (statusType === "sleep") {
-            this.toggleAsleepStatus(userId, message);
-            await this._chatService.sendChatMessage(`${userLogin} is now sleeping${message}`);
+        switch (awayState) {
+            case AWAY_STATUS.afk:
+                this.toggleAwayStatus(userId, AWAY_STATUS.afk, message);
+                await this._chatService.sendChatMessage(`${userLogin} is now AFK${message}`);
+                break;
+            case AWAY_STATUS.asleep:
+                this.toggleAwayStatus(userId, AWAY_STATUS.sleeping, message);
+                await this._chatService.sendChatMessage(`${userLogin} is now sleeping${message}`);
+                break;
+            case AWAY_STATUS.showering:
+                this.toggleAwayStatus(userId, AWAY_STATUS.showering, message);
+                await this._chatService.sendChatMessage(`${userLogin} is now showering${message}`);
+                break;
+            default:
+                break;
         }
     }
 }
