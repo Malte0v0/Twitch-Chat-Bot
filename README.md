@@ -1,4 +1,15 @@
 # Twitch Chat Bot
+## Services
+### Earthquakes
+The earthquake service sends a chat message whenever a large and dangerous earthquake occurs anywhere in the world. The parameters are changed via code and are not accessible by the users. 
+
+Uses the Seismic Portal earthquake WebSocket from the European-Mediterranean Seismological Center. 
+
+Example output:
+
+`⏰ 🚨 7.2 M earthquake near JAPAN`
+### Nitter
+Optional service that triggers whenever a person sends an x.com link. The bot then sends a privacy respecting alternative link that doesn't require login to view the content.
 ## Commands
 ### Reminders
 Can create and schedule reminders intuitively. Can also remind other users. Example:
@@ -37,10 +48,3 @@ With the $afk and $sleep commands you can signal that you are going away for a w
 
 Usage:
 $afk (optional message)
-## Services
-### Earthquakes
-The earthquake service sends a chat message whenever a large and dangerous earthquake occurs anywhere in the world. The parameters are changed via code and are not accessible by the users. Example output:
-
-`⏰ 🚨 7.2 M earthquake near JAPAN`
-### Nitter
-Optional service that triggers whenever a person sends an x.com link. The bot then sends a privacy respecting alternative link that doesn't require login to view the content.
