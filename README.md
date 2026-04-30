@@ -15,6 +15,11 @@ Sends the message "i'm doing good" to user "Malte0v0" the next time they type in
 **You can also set a reminder with the "in (time)" after the $remind part. Like:**
 - $remindme in 3d 2h remove old files from the git repo
 - $remind Bert123 in 3h how are you doing?
+
+**The time can be set in many different formats:**
+  - `3 days 2 hours`           -> 3 days and 2 hours
+  - `3 h 2 day`                      -> 2 days and 3 hours
+  - `2 w 1 s 3 h 4 days`     -> 2 weeks 4 days 3 hours and 1 second
 ### Weather
 With the $weather (location) command you can get real time weather information about a specific location. Example:
 
