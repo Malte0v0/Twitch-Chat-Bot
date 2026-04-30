@@ -26,21 +26,33 @@ export class StatusService {
             const userLogin = data.payload.event.chatter_user_login;
             const status = this.checkChatterStatus(userId);
 
-            if (status && (status.isAfk || status.isAsleep)) {
+            if (status && (status.awayState != 0)) {
                 const timeSince = msToHuman(Date.now() - status.time); 
                 
-                if (status.isAfk) {
-                    this.toggleAfkStatus(userId);
-                    this._chatService.sendChatMessage(`@${userLogin} is no longer AFK${status.message} (${timeSince})`)
-                        .catch((error) => {
-                            console.log("Error when trying to send chat message in statusService: ", error);
-                        });
-                } else if (status.isAsleep) {
-                    this.toggleAsleepStatus(userId);
-                    this._chatService.sendChatMessage(`@${userLogin} is no longer sleeping${status.message} (${timeSince})`)
-                        .catch((error) => {
-                            console.log("Error when trying to send chat message in statusService: ", error);
-                        });;
+                switch (status.awayState) {
+                    case AWAY_STATUS.afk:
+                        this.toggleAwayStatus(userId);
+                        this._chatService.sendChatMessage(`@${userLogin} is no longer AFK${status.message} (${timeSince})`)
+                            .catch((error) => {
+                                console.log("Error when trying to send chat message in statusService: ", error);
+                            });
+                        break;
+                    case AWAY_STATUS.asleep:
+                        this.toggleAwayStatus(userId);
+                        this._chatService.sendChatMessage(`@${userLogin} is no longer sleeping${status.message} (${timeSince})`)
+                            .catch((error) => {
+                                console.log("Error when trying to send chat message in statusService: ", error);
+                            });;
+                        break;
+                    case AWAY_STATUS.showering:
+                        this.toggleAwayStatus(userId);
+                        this._chatService.sendChatMessage(`@${userLogin} is no longer showering${status.message} (${timeSince})`)
+                            .catch((error) => {
+                                console.log("Error when trying to send chat message in statusService: ", error);
+                            });;
+                        break;
+                    default:
+                        break;
                 }
             }
         } catch (error) {
@@ -48,17 +60,15 @@ export class StatusService {
         }
     }
 
-    getAwayUsernames() { // not needed?
-        const query = this._db.prepare("SELECT user_name FROM chatter_status WHERE is_away != 0"); 
-        const rows = query.all();
-
-        return rows.map(row => row.userName);
+    getAwayUsernames() {
+        const rows = this._db.prepare("SELECT user_name FROM chatter_status WHERE is_away != 0").all();
+        return rows.map(row => this._checkStatus(row).userName);
     }
 
     _checkStatus(status) {
         if (status) {
-            const {user_name: userName, time, message, is_afk: isAway} = status;
-            return {userName, time, message, isAway};
+            const {user_name: userName, time, message, is_away: awayState} = status;
+            return {userName, time, message, awayState};
         } else {
             return null;
         }
@@ -87,7 +97,7 @@ export class StatusService {
             UPDATE chatter_status
             SET
                 is_away = CASE WHEN is_away = 0 THEN ? ELSE 0 END,
-                time = CASE WHEN is_away = 0 THEN ? ELSE NULL END,
+                time = CASE WHEN is_away = 0 THEN ? ELSE 0 END,
                 message = CASE WHEN is_away = 0 THEN ? ELSE '' END
             WHERE user_id = ?
         `).run(awayState, Date.now(), message, userId);
@@ -100,7 +110,7 @@ export class StatusService {
 
         this._db.prepare(`
         INSERT OR IGNORE INTO chatter_status (user_id, user_name, time, message, is_away)
-        VALUES (?,?,?,?,?,?)
+        VALUES (?,?,?,?,?)
         `).run(userId, userLogin, currentTime, "", 0, 0);
     }
 
@@ -114,8 +124,8 @@ export class StatusService {
             status = this.checkChatterStatus(userId);
         }
         
-        // Get the afk or sleep message and format it in to a variable called message
-        const pattern = new RegExp(`\\${this._commandPrefix}${awayState} (.*)`)
+        // Get the away message and format it in to a variable called message
+        const pattern = new RegExp(`\\${this._commandPrefix}${Object.keys(AWAY_STATUS).find(k => AWAY_STATUS[k] === awayState)} (.*)`);
         const match = messageText.match(pattern);
         let message = "";
         if (match && match[1]) {
@@ -128,12 +138,12 @@ export class StatusService {
                 await this._chatService.sendChatMessage(`${userLogin} is now AFK${message}`);
                 break;
             case AWAY_STATUS.asleep:
-                this.toggleAwayStatus(userId, AWAY_STATUS.sleeping, message);
+                this.toggleAwayStatus(userId, AWAY_STATUS.asleep, message);
                 await this._chatService.sendChatMessage(`${userLogin} is now sleeping${message}`);
                 break;
             case AWAY_STATUS.showering:
                 this.toggleAwayStatus(userId, AWAY_STATUS.showering, message);
-                await this._chatService.sendChatMessage(`${userLogin} is now showering${message}`);
+                await this._chatService.sendChatMessage(`${userLogin} is now showering xqcShower ${message}`);
                 break;
             default:
                 break;

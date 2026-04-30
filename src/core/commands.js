@@ -5,7 +5,7 @@ import { ReminderService } from "../services/commands/reminderService.js";
 import { TimeService } from "../services/commands/timeService.js";
 import { WeatherService } from "../services/commands/weatherService.js";
 import { Notifier } from "./notifier.js";
-import { AWAY_STATUS } from "../../utils/awayStatus.js";
+import { AWAY_STATUS } from "../utils/awayStatus.js";
 
 export class Commands {
     constructor(chatService, db, scheduler, commandPrefix = "$") {
