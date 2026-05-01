@@ -1,5 +1,5 @@
 import Parser from "rss-parser";
-import { msToHuman, sleep } from "../../utils/timeUtils.js";
+import { msToHuman, sleep } from "../utils/timeUtils.js";
 
 export class NewsService {
     constructor(commandPrefix, chatService) {
@@ -20,17 +20,20 @@ export class NewsService {
 
             const timePublished = new Date(article.isoDate);
             const currentTime = Date.now();
-            const timeSincePublished = msToHuman(currentTime - timePublished);         
+            const timeSincePublished = msToHuman(currentTime - timePublished);
 
-            await this._chatService.sendChatMessage(`(${timeSincePublished} ago) ${title}`);
+            await this._chatService.sendChatMessage(
+                `(${timeSincePublished} ago) ${title}`,
+            );
             await sleep(2000);
         }
-
     }
 
     async getNews() {
         try {
-            const data = await this._parser.parseURL(`https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US%3Aen`);
+            const data = await this._parser.parseURL(
+                `https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US%3Aen`,
+            );
 
             return data;
         } catch (error) {

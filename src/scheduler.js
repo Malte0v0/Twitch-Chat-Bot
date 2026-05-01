@@ -1,4 +1,4 @@
-import { event } from "../utils/events.js";
+import { event } from "./utils/events.js";
 
 const MAX_32_BIT = 2147483647;
 
@@ -25,18 +25,20 @@ export class Scheduler {
     }
 
     _createJob(job, delay) {
-        const timeout = setTimeout(async () => {
-            if (delay > MAX_32_BIT) {
-                this._createJob(job, delay - MAX_32_BIT);
-            } else {
-                try {
-                    this._jobIsDue(job);
-                } catch (error) {
-                    console.error("Error in createJob", error);
+        const timeout = setTimeout(
+            async () => {
+                if (delay > MAX_32_BIT) {
+                    this._createJob(job, delay - MAX_32_BIT);
+                } else {
+                    try {
+                        this._jobIsDue(job);
+                    } catch (error) {
+                        console.error("Error in createJob", error);
+                    }
                 }
-            }
-
-        }, Math.min(delay, MAX_32_BIT));
+            },
+            Math.min(delay, MAX_32_BIT),
+        );
         this._jobs.set(job, timeout);
     }
 

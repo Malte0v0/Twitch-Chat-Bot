@@ -1,11 +1,11 @@
 import { NewsService } from "../services/commands/newsService.js";
 import { QuotesService } from "../services/commands/quotesService.js";
-import { StatusService } from "../services/commands/statusService.js"
+import { StatusService } from "../services/commands/statusService.js";
 import { ReminderService } from "../services/commands/reminderService.js";
 import { TimeService } from "../services/commands/timeService.js";
 import { WeatherService } from "../services/commands/weatherService.js";
 import { Notifier } from "./notifier.js";
-import { AWAY_STATUS } from "../utils/awayStatus.js";
+import { AWAY_STATUS } from "./utils/awayStatus.js";
 
 export class Commands {
     constructor(chatService, db, scheduler, commandPrefix = "$") {
@@ -16,9 +16,17 @@ export class Commands {
 
         this._notifier = new Notifier(chatService);
 
-        this._reminderService = new ReminderService(db, scheduler, this._notifier);
+        this._reminderService = new ReminderService(
+            db,
+            scheduler,
+            this._notifier,
+        );
         this._statusService = new StatusService(chatService, db, commandPrefix);
-        this._weatherService = new WeatherService(commandPrefix, db, chatService);
+        this._weatherService = new WeatherService(
+            commandPrefix,
+            db,
+            chatService,
+        );
         this._newsService = new NewsService(commandPrefix, chatService);
         this._quotesService = new QuotesService(chatService);
         this._timeService = new TimeService(chatService);
@@ -28,7 +36,8 @@ export class Commands {
 
     async executeCommand(command, messageText, data) {
         switch (command) {
-            case "remind": case "remindme":
+            case "remind":
+            case "remindme":
                 this._reminderService.createReminder(data);
                 break;
             case "unset":
@@ -37,10 +46,13 @@ export class Commands {
             case "printreminders":
                 this._reminderService.printReminders();
                 break;
-            case "weather": case "w":
-                await this._weatherService.weatherCommand(messageText, data).catch(error => {
-                    console.warn("Weather command failed:", error);
-                });
+            case "weather":
+            case "w":
+                await this._weatherService
+                    .weatherCommand(messageText, data)
+                    .catch((error) => {
+                        console.warn("Weather command failed:", error);
+                    });
                 break;
             case "location":
                 await this._weatherService.locationCommand(messageText, data);
@@ -49,13 +61,25 @@ export class Commands {
                 await this._newsService.newsCommand();
                 break;
             case "afk":
-                await this._statusService.setUserStatus(messageText, data, AWAY_STATUS.afk);
+                await this._statusService.setUserStatus(
+                    messageText,
+                    data,
+                    AWAY_STATUS.afk,
+                );
                 break;
             case "sleep":
-                await this._statusService.setUserStatus(messageText, data, AWAY_STATUS.asleep);
+                await this._statusService.setUserStatus(
+                    messageText,
+                    data,
+                    AWAY_STATUS.asleep,
+                );
                 break;
             case "shower":
-                await this._statusService.setUserStatus(messageText, data, AWAY_STATUS.showering);
+                await this._statusService.setUserStatus(
+                    messageText,
+                    data,
+                    AWAY_STATUS.showering,
+                );
                 break;
             case "quote":
                 await this._quotesService.quoteCommand();
@@ -82,19 +106,18 @@ export class Commands {
 
     async handleOnSightDueReminders(data) {
         try {
-            const dueOnSightReminders = this._reminderScheduler.dueOnSightReminders;
-            
+            const dueOnSightReminders =
+                this._reminderScheduler.dueOnSightReminders;
+
             const userLogin = data.payload.event.chatter_user_login;
-            
+
             for (const reminder of dueOnSightReminders) {
                 if (reminder.target === userLogin) {
                     this._reminderScheduler.sendReminder(reminder);
                 }
             }
-
         } catch (error) {
             console.warn(error);
         }
     }
-
 }

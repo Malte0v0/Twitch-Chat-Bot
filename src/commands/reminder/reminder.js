@@ -1,4 +1,4 @@
-import { convertToMs, msToHuman } from "../utils/timeUtils.js";
+import { convertToMs, msToHuman } from "../../utils/timeUtils.js";
 
 export class Reminder {
     constructor(reminderDict, db, scheduler, notifier) {
@@ -34,14 +34,14 @@ export class Reminder {
     }
 
     notifyInit() {
-        const target = (this.sender != this.target) ? this.target : "you";
+        const target = this.sender != this.target ? this.target : "you";
         let message = `I will remind ${target}`;
 
         if (this.timeString) {
             const timeUntil = msToHuman(convertToMs(this.timeString));
             message += ` in ${timeUntil} (ID ${this.rowId})`;
         } else {
-            const whosThey = (target == "you") ? "you" : "they";
+            const whosThey = target == "you" ? "you" : "they";
             message += ` the next time ${whosThey} type in chat (ID ${this.rowId})`;
         }
 
@@ -55,14 +55,20 @@ export class Reminder {
     }
 
     notifyNonExistent(user) {
-        this.notifier.notify(user, `Reminder with ID ${this.rowId} doesn't exist`);
+        this.notifier.notify(
+            user,
+            `Reminder with ID ${this.rowId} doesn't exist`,
+        );
     }
 
     notifyDelete(user, result) {
         if (result.changes == 0) {
             this.notifier.notify(user, `Nono`);
         } else {
-            this.notifier.notify(user, `Reminder with ID ${this.rowId} has been unset`);
+            this.notifier.notify(
+                user,
+                `Reminder with ID ${this.rowId} has been unset`,
+            );
         }
     }
 
@@ -70,14 +76,14 @@ export class Reminder {
         this.notifyDeliver();
         this.db.setReminderDelivered(this.rowId);
     }
-    
+
     notifyDeliver() {
-        const target = (this.sender != this.target) ? this.sender : "yourself";
-    
+        const target = this.sender != this.target ? this.sender : "yourself";
+
         const timeSinceSet = msToHuman(Date.now() - this.createdAt);
         const prefix = `reminder from ${target} (${timeSinceSet} ago)`;
         const suffix = this.message ? `: ${this.message}` : "";
 
-        this.notifier.notify(this.target, prefix+suffix);
+        this.notifier.notify(this.target, prefix + suffix);
     }
 }
