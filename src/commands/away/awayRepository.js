@@ -4,6 +4,7 @@ export class AwayRepository {
     }
 
     _checkStatus(status) {
+        // Update this too
         if (status) {
             const {
                 user_name: userName,
@@ -17,31 +18,12 @@ export class AwayRepository {
         }
     }
 
-    getAwayUsernames() {
-        const rows = this.database
-            .prepare("SELECT user_name FROM chatter_status WHERE is_away != 0")
-            .all();
-        return rows.map((row) => this._checkStatus(row).userName);
-    }
-
-    checkChatterStatusByName(userName) {
-        const status = this.database
-            .prepare(
-                `
-            SELECT user_name, time, message, is_away FROM chatter_status
-            WHERE user_name = ?
-            `,
-            )
-            .get(userName);
-
-        return this._checkStatus(status);
-    }
-
     checkChatterStatus(userId) {
+        // Get from users table
         const status = this.database
             .prepare(
                 `
-            SELECT user_name, time, message, is_away FROM chatter_status
+            SELECT user_name, is_away, time, message FROM user_activity
             WHERE user_id = ?
             `,
             )
@@ -50,11 +32,11 @@ export class AwayRepository {
         return this._checkStatus(status);
     }
 
-    toggleAwayStatus(userId, awayState = 1, message = "") {
+    toggleAwayStatus(userId, awayState, message = "") {
         this.database
             .prepare(
                 `
-            UPDATE chatter_status
+            UPDATE user_activity
             SET
                 is_away = CASE WHEN is_away = 0 THEN ? ELSE 0 END,
                 time = CASE WHEN is_away = 0 THEN ? ELSE 0 END,
@@ -65,16 +47,14 @@ export class AwayRepository {
             .run(awayState, Date.now(), message, userId);
     }
 
-    insertChatterStatus(userId, userLogin) {
-        const currentTime = Date.now();
-
+    insertChatterStatus(userId) {
         this.database
             .prepare(
                 `
-        INSERT OR IGNORE INTO chatter_status (user_id, user_name, time, message, is_away)
+        INSERT OR IGNORE INTO user_activity (user_id, time, message, is_away)
         VALUES (?,?,?,?,?)
         `,
             )
-            .run(userId, userLogin, currentTime, "", 0, 0);
+            .run(userId, Date.now(), "", 0, 0);
     }
 }

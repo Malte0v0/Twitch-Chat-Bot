@@ -1,7 +1,7 @@
 import WebSocket from "ws";
-import { getHumanTimeFromDate } from "../utils/timeUtils.js";
-import { sanitizeInput } from "../utils/inputUtils.js";
-import { event } from "../utils/events.js";
+import { getHumanTimeFromDate } from "../../utils/timeUtils.js";
+import { sanitizeInput } from "../../utils/inputUtils.js";
+import { event } from "../../utils/events.js";
 
 export class TwitchService {
     constructor(

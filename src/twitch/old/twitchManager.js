@@ -1,4 +1,76 @@
-export class HeartbeatMonitor {
+import { TwitchClient } from "./twitchClient";
+
+export class TwitchManager {
+    constructor() {
+        this.reconnectInterval = 1000;
+
+        this.oldWSClient = null;
+        this.sessionId = null;
+
+        this.keepaliveTimeoutSeconds = null;
+        this.latestWsMessage = Date.now();
+
+        this.isReconnectEvent = false;
+        this.reconnecting = false;
+
+        this.keepaliveInterval = null;
+
+        this.defaultWSUrl = "wss://eventsub.wss.twitch.tv/ws";
+
+        this.twitchClient = new TwitchClient();
+    }
+
+    connect() {
+        this.twitchClient.connect(this.defaultWSUrl);
+    }
+
+    // this.reconnecting = false;
+    // this.resetheartbeatMonitor.ReconnectInterval();
+
+    reconnect(url = this.defaultWSUrl) {
+        // Reconnect debounce
+        if (this.reconnecting) {
+            console.log("Reconnection already in progress");
+            return;
+        }
+        this.reconnecting = true;
+
+        // Stop heartbeat monitor
+        this.clearHeartbeatMonitor();
+
+        if (this.isReconnectEvent) {
+            // Make a reference to the old WebSocket client
+            this.oldWSClient = this.mainWebSocketClient;
+        } else {
+            // Close existing connection
+            this.cleanupAll();
+        }
+
+        console.log(
+            `Twitch WebSocket ${this.sessionId || "unknown"} reconnecting with url: ${url}`,
+        );
+        // Make a new WebSocket client
+        this.connect(url);
+    }
+
+    disconnect() {
+        this.twitchClient.disconnect();
+    }
+
+    //     if (client === this.mainWebSocketClient && code !== 1000) {
+    //     this.reconnecting = false;
+    //     this.heartbeatMonitor.reconnectInterval = Math.min(
+    //         this.heartbeatMonitor.reconnectInterval * 2,
+    //         60000,
+    //     );
+    //     console.warn(
+    //         `Trying to reconnect in ${this.heartbeatMonitor.reconnectInterval / 1000}s...`,
+    //     );
+    //     setTimeout(() => {
+    //         this.reconnect();
+    //     }, this.heartbeatMonitor.reconnectInterval);
+    // }
+
     cleanupAll() {
         this.clearHeartbeatMonitor();
         this.cleanupMainConnection();

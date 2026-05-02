@@ -20,10 +20,19 @@ export class ChatDatabase extends Database {
         `);
 
         this.exec(`
+            CREATE TABLE IF NOT EXISTS user_activity (
+            user_id INTEGER PRIMARY KEY REFERENCES users(user_id) NOT NULL,
+            is_away INTEGER NOT NULL DEFAULT 0,
+            time INTEGER NOT NULL,
+            message TEXT NOT NULL
+            )    
+        `);
+
+        this.exec(`
             CREATE TABLE IF NOT EXISTS reminders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sender_id INTEGER REFERENCES users(user_id) NOT NULL,
-            target_id INTEGER REFERENCES users(user_id) NOT NULL,
+            sender_user_id INTEGER REFERENCES users(user_id) NOT NULL,
+            target_user_id INTEGER REFERENCES users(user_id) NOT NULL,
             message TEXT,
             created_at INTEGER NOT NULL,
             trigger_time INTEGER,
@@ -33,8 +42,7 @@ export class ChatDatabase extends Database {
 
         this.exec(`
             CREATE TABLE IF NOT EXISTS locations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sender_id INTEGER REFERENCES users(user_id) NOT NULL,
+            user_id INTEGER PRIMARY KEY REFERENCES users(user_id) NOT NULL,
             location TEXT NOT NULL
             )        
         `);
