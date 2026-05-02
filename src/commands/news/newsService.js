@@ -2,8 +2,7 @@ import Parser from "rss-parser";
 import { msToHuman, sleep } from "../../utils/timeUtils.js";
 
 export class NewsService {
-    constructor(commandPrefix, chatService) {
-        this._commandPrefix = commandPrefix;
+    constructor(chatService) {
         this._chatService = chatService;
 
         this._parser = new Parser();

@@ -1,16 +1,21 @@
 import { Reminder } from "../../core/reminder.js";
 import { event } from "../../utils/events.js";
 import { convertToMs } from "../../utils/timeUtils.js";
+import { ReminderParser } from "./reminderParser.js";
+import { ReminderRepository } from "./reminderRepository.js";
 
 export class ReminderService {
-    constructor(db, scheduler) {
-        this.db = db;
+    constructor(chatService, database, scheduler) {
+        this.chatService = chatService;
         this.scheduler = scheduler;
+
+        this.reminderRepository = new ReminderRepository(database);
+        this.reminderParser = new ReminderParser();
 
         this.startListening();
 
         this.reminders = new Map();
-        this._loadUndeliveredReminders();
+        this.loadUndeliveredReminders();
 
         // for (const reminder of this.reminders.values()) {
         //     if (reminder.isDue()) {
@@ -37,18 +42,17 @@ export class ReminderService {
     }
 
     deliverTimeReminder(reminder) {
-        if (!(reminder instanceof Reminder)) return;
+        if (!(reminder instanceof ReminderModel)) return;
 
         reminder.deliver();
         this.reminders.delete(reminder.rowId);
     }
 
-    deliverUserReminder(data) {
-        const sender = data.payload.event.chatter_user_login;
+    deliverUserReminder(userLogin) {
         for (const [id, reminder] of this.reminders.entries()) {
             if (
                 reminder.triggerTime === null &&
-                reminder.target.toLowerCase() === sender.toLowerCase()
+                reminder.target.toLowerCase() === userLogin.toLowerCase()
             ) {
                 reminder.deliver();
                 this.reminders.delete(id);
@@ -56,92 +60,35 @@ export class ReminderService {
         }
     }
 
-    _loadUndeliveredReminders() {
-        const remindersDb = this.db.getUndeliveredReminders();
+    loadUndeliveredReminders() {
+        const remindersDb = this.reminderRepository.getUndeliveredReminders();
 
         for (const reminderDb of remindersDb) {
             const reminderDict = {
                 id: reminderDb.id,
-                sender: reminderDb.sender,
+                userLogin: reminderDb.userLogin,
                 target: reminderDb.target,
                 message: reminderDb.message,
                 trigger_time: reminderDb.trigger_time,
                 created_at: reminderDb.created_at,
             };
-            const reminder = new Reminder(
+            const reminder = new ReminderModel(
                 reminderDict,
-                this.db,
+                this.reminderRepository,
                 this.scheduler,
-                this.notifier,
             );
             this.reminders.set(reminder.rowId, reminder);
             reminder.schedule();
         }
     }
 
-    _parseData(data) {
-        const sender = data.payload.event.chatter_user_login.toLowerCase();
-        const messageText = data.payload.event.message.text.trim().substring(1);
-        const currentTime = Date.now();
-
-        const firstPattern = new RegExp(
-            `^remind(?:me|\\s+(\\w+))\\s+in\\s+((?:\\d+\\s*\\w+\\s*)+)$`,
-        );
-        const secondPattern = new RegExp(
-            `^remind(?:me|\\s+(\\w+))\\s+(.+)in\\s+((?:\\d+\\s*\\w+\\s*)+)$`,
-        );
-        const thirdPatternNoMessage = new RegExp(
-            `^remind(?:me|\\s+(\\w+))\\s+in\\s+((?:\\d+\\s*\\w+\\s*)+)\\s+(.+)$`,
-        );
-        const fourthPatternNoTime = new RegExp(
-            `^remind(?:me|\\s+(\\w+))\\s+(.+)$`,
-        );
-
-        let match;
-        let time = null;
-        let message = null;
-
-        if ((match = messageText.match(firstPattern))) {
-            time = match[2];
-            message = "";
-        } else if ((match = messageText.match(secondPattern))) {
-            time = match[3];
-            message = match[2];
-        } else if ((match = messageText.match(thirdPatternNoMessage))) {
-            time = match[2];
-            message = match[3];
-        } else if ((match = messageText.match(fourthPatternNoTime))) {
-            message = match[2];
-        }
-
-        if (!match) {
-            return false;
-        }
-
-        if (!message) message = "";
-
-        const targetUser = match[1] || sender;
-
-        let triggerTime = null;
-        let timeToTarget = null;
-        if (time) {
-            timeToTarget = convertToMs(time);
-            triggerTime = currentTime + timeToTarget;
-        }
-
-        return {
-            sender: sender,
-            target: targetUser,
-            message: message,
-            trigger_time: triggerTime,
-            created_at: currentTime,
-            time: time,
-        };
-    }
-
     createReminder(data) {
-        const reminderDict = this._parseData(data);
-        const reminder = new Reminder(reminderDict, this.db, this.scheduler);
+        const reminderDict = this.reminderParser.parseData(data);
+        const reminder = new ReminderModel(
+            reminderDict,
+            this.reminderRepository,
+            this.scheduler,
+        );
         const result = reminder.init();
         if (!result) {
             return;
@@ -149,28 +96,14 @@ export class ReminderService {
         this.reminders.set(reminder.rowId, reminder);
     }
 
-    _parseUnsetData(data) {
-        const sender = data.payload.event.chatter_user_login.toLowerCase();
-        const messageText = data.payload.event.message.text.trim().substring(1);
-
-        const pattern = new RegExp(`^unset\\s+(\\d+)`);
-        const match = messageText.match(pattern);
-
-        if (match && match[1]) {
-            return [sender, match[1]];
-        } else {
-            return;
-        }
-    }
-
     deleteReminder(data) {
-        const [user, rowIdStr] = this._parseUnsetData(data);
+        const [user, rowIdStr] = this.reminderParser.parseUnsetData(data);
 
         const rowId = Number(rowIdStr);
 
         const reminder = this.reminders.get(rowId);
         if (!reminder) {
-            this.notifier.notify(
+            this.chatService.sendFormattedMessage(
                 user,
                 `Reminder with ID ${rowId} doesn't exist`,
             );

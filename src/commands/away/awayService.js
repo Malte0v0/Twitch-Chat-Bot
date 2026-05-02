@@ -1,15 +1,16 @@
 import { event } from "../../utils/events.js";
 import { msToHuman } from "../../utils/timeUtils.js";
 import { AWAY_STATUS } from "../../utils/awayStatus.js";
+import { AwayRepository } from "./awayRepository.js";
 
 export class AwayService {
-    constructor(chatService, db, commandPrefix) {
-        this._chatService = chatService;
-        this._db = db;
+    constructor(chatService, database) {
+        this.chatService = chatService;
+        this.awayRepository = new AwayRepository(database);
+    }
 
-        this._commandPrefix = commandPrefix;
-
-        this._startListening();
+    start() {
+        this.startListening();
     }
 
     _startListening() {
@@ -20,19 +21,17 @@ export class AwayService {
         event.off("user_appeared", this.handleAway.bind(this));
     }
 
-    handleAway(data) {
+    handleAway(userId, userLogin) {
         try {
-            const userId = data.payload.event.chatter_user_id;
-            const userLogin = data.payload.event.chatter_user_login;
-            const status = this.checkChatterStatus(userId);
+            const status = this.awayRepository.checkChatterStatus(userId);
 
             if (status && status.awayState != 0) {
                 const timeSince = msToHuman(Date.now() - status.time);
 
                 switch (status.awayState) {
                     case AWAY_STATUS.afk:
-                        this.toggleAwayStatus(userId);
-                        this._chatService
+                        this.awayRepository.toggleAwayStatus(userId);
+                        this.chatService
                             .sendChatMessage(
                                 `@${userLogin} is no longer AFK${status.message} (${timeSince})`,
                             )
@@ -44,8 +43,8 @@ export class AwayService {
                             });
                         break;
                     case AWAY_STATUS.asleep:
-                        this.toggleAwayStatus(userId);
-                        this._chatService
+                        this.awayRepository.toggleAwayStatus(userId);
+                        this.chatService
                             .sendChatMessage(
                                 `@${userLogin} is no longer sleeping${status.message} (${timeSince})`,
                             )
@@ -57,8 +56,8 @@ export class AwayService {
                             });
                         break;
                     case AWAY_STATUS.showering:
-                        this.toggleAwayStatus(userId);
-                        this._chatService
+                        this.awayRepository.toggleAwayStatus(userId);
+                        this.chatService
                             .sendChatMessage(
                                 `@${userLogin} is no longer showering${status.message} (${timeSince})`,
                             )
@@ -78,120 +77,42 @@ export class AwayService {
         }
     }
 
-    getAwayUsernames() {
-        const rows = this._db
-            .prepare("SELECT user_name FROM chatter_status WHERE is_away != 0")
-            .all();
-        return rows.map((row) => this._checkStatus(row).userName);
-    }
-
-    _checkStatus(status) {
-        if (status) {
-            const {
-                user_name: userName,
-                time,
-                message,
-                is_away: awayState,
-            } = status;
-            return { userName, time, message, awayState };
-        } else {
-            return null;
-        }
-    }
-
-    checkChatterStatusByName(userName) {
-        const status = this._db
-            .prepare(
-                `
-        SELECT user_name, time, message, is_away FROM chatter_status
-        WHERE user_name = ?
-        `,
-            )
-            .get(userName);
-
-        return this._checkStatus(status);
-    }
-
-    checkChatterStatus(userId) {
-        const status = this._db
-            .prepare(
-                `
-        SELECT user_name, time, message, is_away FROM chatter_status
-        WHERE user_id = ?
-        `,
-            )
-            .get(userId);
-
-        return this._checkStatus(status);
-    }
-
-    toggleAwayStatus(userId, awayState = 1, message = "") {
-        this._db
-            .prepare(
-                `
-            UPDATE chatter_status
-            SET
-                is_away = CASE WHEN is_away = 0 THEN ? ELSE 0 END,
-                time = CASE WHEN is_away = 0 THEN ? ELSE 0 END,
-                message = CASE WHEN is_away = 0 THEN ? ELSE '' END
-            WHERE user_id = ?
-        `,
-            )
-            .run(awayState, Date.now(), message, userId);
-    }
-
-    insertChatterStatus(data) {
-        const userId = data.payload.event.chatter_user_id;
-        const userLogin = data.payload.event.chatter_user_login;
-        const currentTime = Date.now();
-
-        this._db
-            .prepare(
-                `
-        INSERT OR IGNORE INTO chatter_status (user_id, user_name, time, message, is_away)
-        VALUES (?,?,?,?,?)
-        `,
-            )
-            .run(userId, userLogin, currentTime, "", 0, 0);
-    }
-
-    async setUserStatus(messageText, data, awayState = 1) {
-        const userId = data.payload.event.chatter_user_id;
-        const userLogin = data.payload.event.chatter_user_login;
-
-        let status = this.checkChatterStatus(userId);
+    async setAway(messageText, userId, userLogin, awayState = 1) {
+        let status = this.awayRepository.checkChatterStatus(userId);
         if (!status) {
-            this.insertChatterStatus(data);
-            status = this.checkChatterStatus(userId);
-        }
-
-        // Get the away message and format it in to a variable called message
-        const pattern = new RegExp(
-            `\\${this._commandPrefix}${Object.keys(AWAY_STATUS).find((k) => AWAY_STATUS[k] === awayState)} (.*)`,
-        );
-        const match = messageText.match(pattern);
-        let message = "";
-        if (match && match[1]) {
-            message = ": " + match[1].trim();
+            this.awayRepository.insertChatterStatus(data);
+            status = this.awayRepository.checkChatterStatus(userId);
         }
 
         switch (awayState) {
             case AWAY_STATUS.afk:
-                this.toggleAwayStatus(userId, AWAY_STATUS.afk, message);
-                await this._chatService.sendChatMessage(
-                    `${userLogin} is now AFK${message}`,
+                this.awayRepository.toggleAwayStatus(
+                    userId,
+                    AWAY_STATUS.afk,
+                    messageText,
+                );
+                await this.chatService.sendChatMessage(
+                    `${userLogin} is now AFK${messageText}`,
                 );
                 break;
             case AWAY_STATUS.asleep:
-                this.toggleAwayStatus(userId, AWAY_STATUS.asleep, message);
-                await this._chatService.sendChatMessage(
-                    `${userLogin} is now sleeping${message}`,
+                this.awayRepository.toggleAwayStatus(
+                    userId,
+                    AWAY_STATUS.asleep,
+                    messageText,
+                );
+                await this.chatService.sendChatMessage(
+                    `${userLogin} is now sleeping${messageText}`,
                 );
                 break;
             case AWAY_STATUS.showering:
-                this.toggleAwayStatus(userId, AWAY_STATUS.showering, message);
-                await this._chatService.sendChatMessage(
-                    `${userLogin} is now showering xqcShower ${message}`,
+                this.awayRepository.toggleAwayStatus(
+                    userId,
+                    AWAY_STATUS.showering,
+                    messageText,
+                );
+                await this.chatService.sendChatMessage(
+                    `${userLogin} is now showering xqcShower ${messageText}`,
                 );
                 break;
             default:

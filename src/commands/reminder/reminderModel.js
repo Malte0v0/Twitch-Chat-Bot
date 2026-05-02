@@ -1,8 +1,8 @@
 import { convertToMs, msToHuman } from "../../utils/timeUtils.js";
 
 export class ReminderModel {
-    constructor(reminderDict, database, scheduler) {
-        this.sender = reminderDict.sender;
+    constructor(chatService, reminderDict, database, scheduler) {
+        this.userLogin = reminderDict.userLogin;
         this.target = reminderDict.target;
         this.message = reminderDict.message;
         this.triggerTime = reminderDict.trigger_time || null;
@@ -10,12 +10,13 @@ export class ReminderModel {
         this.timeString = reminderDict.time || null;
         this.rowId = reminderDict.id || null;
 
-        this.database = database;
+        this.chatService = chatService;
+        this.reminderRepository = reminderRepository;
         this.scheduler = scheduler;
     }
 
     init() {
-        this.rowId = this.database.saveReminder(this);
+        this.rowId = this.reminderRepository.saveReminder(this);
         if (!this.rowId) {
             return false;
         }
@@ -33,7 +34,7 @@ export class ReminderModel {
     }
 
     notifyInit() {
-        const target = this.sender != this.target ? this.target : "you";
+        const target = this.userLogin != this.target ? this.target : "you";
         let message = `I will remind ${target}`;
 
         if (this.timeString) {
@@ -44,11 +45,11 @@ export class ReminderModel {
             message += ` the next time ${whosThey} type in chat (ID ${this.rowId})`;
         }
 
-        this.chatService.sendFormattedMessage(this.sender, message);
+        this.chatService.sendFormattedMessage(this.userLogin, message);
     }
 
     delete(user) {
-        const result = this.database.deleteReminder(user, this);
+        const result = this.reminderRepository.deleteReminder(user, this);
         if (result.changes !== 0) this.scheduler.removeJob(this);
         this.notifyDelete(user, result);
     }
@@ -73,11 +74,12 @@ export class ReminderModel {
 
     deliver() {
         this.notifyDeliver();
-        this.database.setReminderDelivered(this.rowId);
+        this.reminderRepository.setReminderDelivered(this.rowId);
     }
 
     notifyDeliver() {
-        const target = this.sender != this.target ? this.sender : "yourself";
+        const target =
+            this.userLogin != this.target ? this.userLogin : "yourself";
 
         const timeSinceSet = msToHuman(Date.now() - this.createdAt);
         const prefix = `reminder from ${target} (${timeSinceSet} ago)`;

@@ -1,26 +1,27 @@
-import { NewsService } from "../services/commands/newsService.js";
-import { QuotesService } from "../services/commands/quotesService.js";
-import { StatusService } from "../services/commands/statusService.js";
-import { ReminderService } from "../services/commands/reminderService.js";
-import { TimeService } from "../services/commands/timeService.js";
-import { WeatherService } from "../services/commands/weatherService.js";
+import { ReminderService } from "./commands/reminder/reminderService.js";
+import { WeatherService } from "./commands/weather/weatherService.js";
+import { LocationService } from "./commands/location/locationService.js";
+import { NewsService } from "./commands/news/newsService.js";
+import { AwayService } from "./commands/away/awayService.js";
+import { QuotesService } from "./commands/quote/quotesService.js";
+import { TimeService } from "./commands/time/timeService.js";
 import { AWAY_STATUS } from "./utils/awayStatus.js";
 
 export class CommandController {
-    constructor(chatService, db, scheduler, commandPrefix = "$") {
+    constructor(chatService, database, scheduler) {
         this.chatService = chatService;
-        this.db = db;
+        this.database = database;
         this.scheduler = scheduler;
-        this.commandPrefix = commandPrefix;
 
-        this.reminderService = new ReminderService(db, scheduler);
-        this.statusService = new StatusService(chatService, db, commandPrefix);
-        this.weatherService = new WeatherService(
-            commandPrefix,
-            db,
+        this.reminderService = new ReminderService(
             chatService,
+            database,
+            scheduler,
         );
-        this.newsService = new NewsService(commandPrefix, chatService);
+        this.weatherService = new WeatherService(chatService, database);
+        this.locationService = new LocationService(chatService, database);
+        this.newsService = new NewsService(chatService);
+        this.awayService = new AwayService(chatService, database);
         this.quotesService = new QuotesService(chatService);
         this.timeService = new TimeService(chatService);
 
@@ -28,6 +29,9 @@ export class CommandController {
     }
 
     async executeCommand(command, messageText, data) {
+        const userLogin = data.payload.event.chatter_user_login;
+        const userId = data.payload.event.chatter_user_id;
+
         switch (command) {
             case "remind":
             case "remindme":
@@ -48,29 +52,35 @@ export class CommandController {
                     });
                 break;
             case "location":
-                await this.weatherService.locationCommand(messageText, data);
+                await this.locationService.locationCommand(
+                    messageText,
+                    userLogin,
+                );
                 break;
             case "news":
                 await this.newsService.newsCommand();
                 break;
             case "afk":
-                await this.statusService.setUserStatus(
+                await this.awayService.setAway(
                     messageText,
-                    data,
+                    userId,
+                    userLogin,
                     AWAY_STATUS.afk,
                 );
                 break;
             case "sleep":
-                await this.statusService.setUserStatus(
+                await this.awayService.setAway(
                     messageText,
-                    data,
+                    userId,
+                    userLogin,
                     AWAY_STATUS.asleep,
                 );
                 break;
             case "shower":
-                await this.statusService.setUserStatus(
+                await this.awayService.setAway(
                     messageText,
-                    data,
+                    userId,
+                    userLogin,
                     AWAY_STATUS.showering,
                 );
                 break;
