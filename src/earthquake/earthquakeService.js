@@ -31,14 +31,6 @@ export class EarthquakeService {
             }
         });
 
-        this.earthquakeClient.on("error", (error) => {
-            this.earthquakeClient.disconnect();
-        });
-
-        this.earthquakeClient.on("close", (code, reason) => {
-            this.earthquakeClient.reconnect();
-        });
-
         this.earthquakeClient.connect();
     }
 
