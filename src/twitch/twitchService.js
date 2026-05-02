@@ -3,25 +3,19 @@ import { getHumanTimeFromDate } from "../utils/timeUtils.js";
 import { sanitizeInput } from "../utils/inputUtils.js";
 import { event } from "../utils/events.js";
 
-export class TwitchClient {
+export class TwitchService {
     constructor(
-        authService,
-        chatService,
         commands,
         commandPrefix,
     ) {
-        this.authService = authService;
-        this.chatService = chatService;
-        this.nitterService = nitterService;
+
         this.commands = commands;
+
         this.commandPrefix = commandPrefix;
-
-        this.defaultWebSocketURL = "wss://eventsub.wss.twitch.tv/ws";
-        this.connect();
-
         this.commandRegex = new RegExp(`^(?:\\${this.commandPrefix})(\\w+)`);
 
         this.twitchClient = new TwitchClient();
+        this.twitchClient.connect();
 
         this.twitchClient.on("message", (data) => {
             this.handleMessage(data);
@@ -29,11 +23,10 @@ export class TwitchClient {
     }
 
     handleMessage(data) {
-        // First, print the message to the program's console.
         console.log(
             `MSG ${messageTime} #${data.payload.event.broadcaster_user_login} <${data.payload.event.chatter_user_login}> ${data.payload.event.message.text}`,
         );
-        // Sanitize the message text
+
         const messageTest = sanitizeInput(
             data.payload.event.message.text,
         ).trim();

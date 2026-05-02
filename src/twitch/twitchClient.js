@@ -1,24 +1,28 @@
 export class TwitchClient extends EventEmitter {
-    constructor(url) {
+    constructor() {
         super();
 
-        this.url = url;
+        this.authService = authService;
+        this.chatService = chatService;
+        this.nitterService = nitterService;
 
-        this._oldWebSocketClient = null;
-        this._websocketSessionID = null;
+        this.oldWSClient = null;
+        this.sessionId = null;
 
-        this._keepaliveTimeoutSeconds = null;
-        this._latestWsMessage = Date.now();
+        this.keepaliveTimeoutSeconds = null;
+        this.latestWsMessage = Date.now();
 
-        this._isReconnectEvent = false;
-        this._reconnecting = false;
-        this._reconnectInterval = 1000;
-        this._keepaliveInterval = null;
+        this.isReconnectEvent = false;
+        this.reconnecting = false;
+        this.reconnectInterval = 1000;
+        this.keepaliveInterval = null;
+
+        this.defaultWSUrl = "wss://eventsub.wss.twitch.tv/ws";
     }
 
-    connect() {
-        console.log("Connecting to Twitch WebSocket with:", this.url);
-        const client = new WebSocket(this.url);
+    connect(url = this.defaultWSUrl) {
+        console.log("Connecting to Twitch WebSocket with:", url);
+        const client = new WebSocket(url);
         const connectTimeout = setTimeout(() => {
             if (client.readyState === WebSocket.CONNECTING) {
                 console.warn("Connection timeout");
@@ -26,14 +30,14 @@ export class TwitchClient extends EventEmitter {
             }
         }, 10000);
 
-        this._mainWebSocketClient = client;
+        this.mainWebSocketClient = client;
 
         client.on("open", () => {
             console.log(
-                `Twitch WebSocket ${this._websocketSessionID || "new"} connection opened, url: ${this.url}`,
+                `Twitch WebSocket ${this.sessionId || "new"} connection opened, url: ${url}`,
             );
             clearInterval(connectTimeout);
-            this._reconnecting = false;
+            this.reconnecting = false;
             this.resetReconnectInterval();
         });
 
@@ -50,53 +54,53 @@ export class TwitchClient extends EventEmitter {
 
         client.on("error", (error) => {
             console.warn(
-                `Twitch WebSocket ${this._websocketSessionID || "unknown"} error: ${error}`,
+                `Twitch WebSocket ${this.sessionId || "unknown"} error: ${error}`,
             );
             client.close(4008);
         });
 
         client.on("close", (code, reason) => {
             console.log(
-                `Twitch WebSocket ${this._websocketSessionID || "unknown"} closed: ${code} ${reason.toString()}`,
+                `Twitch WebSocket ${this.sessionId || "unknown"} closed: ${code} ${reason.toString()}`,
             );
 
-            if (client === this._mainWebSocketClient && code !== 1000) {
-                this._reconnecting = false;
-                this._reconnectInterval = Math.min(
-                    this._reconnectInterval * 2,
+            if (client === this.mainWebSocketClient && code !== 1000) {
+                this.reconnecting = false;
+                this.reconnectInterval = Math.min(
+                    this.reconnectInterval * 2,
                     60000,
                 );
                 console.warn(
-                    `Trying to reconnect in ${this._reconnectInterval / 1000}s...`,
+                    `Trying to reconnect in ${this.reconnectInterval / 1000}s...`,
                 );
                 setTimeout(() => {
                     this.reconnect();
-                }, this._reconnectInterval);
+                }, this.reconnectInterval);
             }
         });
     }
 
-    reconnect(url = this._defaultWebSocketURL) {
+    reconnect(url = this.defaultWSUrl) {
         // Reconnect debounce
-        if (this._reconnecting) {
+        if (this.reconnecting) {
             console.log("Reconnection already in progress");
             return;
         }
-        this._reconnecting = true;
+        this.reconnecting = true;
 
         // Stop heartbeat monitor
         this.clearHeartbeatMonitor();
 
-        if (this._isReconnectEvent) {
+        if (this.isReconnectEvent) {
             // Make a reference to the old WebSocket client
-            this._oldWebSocketClient = this._mainWebSocketClient;
+            this.oldWSClient = this.mainWebSocketClient;
         } else {
             // Close existing connection
             this.cleanupAll();
         }
 
         console.log(
-            `Twitch WebSocket ${this._websocketSessionID || "unknown"} reconnecting with url: ${url}`,
+            `Twitch WebSocket ${this.sessionId || "unknown"} reconnecting with url: ${url}`,
         );
         // Make a new WebSocket client
         this.connect(url);
@@ -104,7 +108,7 @@ export class TwitchClient extends EventEmitter {
 
     async handleMessages(data) {
         // Update time since last message
-        this._latestWsMessage = Date.now();
+        this.latestWsMessage = Date.now();
 
         const time = new Date(data.metadata.message_timestamp);
         const messageTime = getHumanTimeFromDate(time);
@@ -113,31 +117,28 @@ export class TwitchClient extends EventEmitter {
         switch (data.metadata.message_type) {
             case "session_welcome":
                 // Handle an eventual reconnect situation
-                if (this._oldWebSocketClient) {
-                    console.log(
-                        "Closing old Twitch WebSocket",
-                        this._websocketSessionID,
-                    );
+                if (this.oldWSClient) {
+                    console.log("Closing old Twitch WebSocket", this.sessionId);
                     this.cleanupOldConnection();
                 }
 
-                this._websocketSessionID = data.payload.session.id;
-                this._keepaliveTimeoutSeconds =
+                this.sessionId = data.payload.session.id;
+                this.keepaliveTimeoutSeconds =
                     data.payload.session.keepalive_timeout_seconds;
 
-                if (!this._isReconnectEvent) {
+                if (!this.isReconnectEvent) {
                     console.log(
                         "Registering EventSub listeners for new connection",
                     );
                     await this.registerEventSubListeners();
                 }
 
-                this._isReconnectEvent = false;
+                this.isReconnectEvent = false;
 
                 await this.startHeartbeatMonitor();
                 break;
             case "session_keepalive":
-                // console.log("Heartbeat", this._websocketSessionID)
+                // console.log("Heartbeat", this.sessionId)
                 break;
             case "notification":
                 switch (data.metadata.subscription_type) {
@@ -151,7 +152,7 @@ export class TwitchClient extends EventEmitter {
                     "Recieved reconnection message from Twitch EventSub WebSocket",
                 );
                 const reconnectURL = data.payload.session.reconnect_url;
-                this._isReconnectEvent = true;
+                this.isReconnectEvent = true;
                 this.reconnect(reconnectURL);
                 break;
             case "revocation":

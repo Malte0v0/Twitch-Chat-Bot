@@ -1,5 +1,5 @@
 import Parser from "rss-parser";
-import { msToHuman, sleep } from "../utils/timeUtils.js";
+import { msToHuman, sleep } from "../../utils/timeUtils.js";
 
 export class NewsService {
     constructor(commandPrefix, chatService) {

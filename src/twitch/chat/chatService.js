@@ -37,6 +37,13 @@ export class ChatService {
         this.processQueue();
     }
 
+    sendFormattedMessage(userName, message) {
+        messageFormatted = `@${userName}, ${message}`;
+        this.sendChatMessage(messageFormatted).catch((error) =>
+            console.warn(error),
+        );
+    }
+
     async processQueue() {
         if (this.isSending) return;
         this.isSending = true;
@@ -50,6 +57,7 @@ export class ChatService {
                 this.messageQueue.unshift({ message, chatId });
                 await sleep(2000);
             } else {
+                this.lastMessage = message;
                 await sleep(this.rateLimitDelay);
             }
         }

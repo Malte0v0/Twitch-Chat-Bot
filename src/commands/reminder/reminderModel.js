@@ -1,7 +1,7 @@
 import { convertToMs, msToHuman } from "../../utils/timeUtils.js";
 
-export class Reminder {
-    constructor(reminderDict, db, scheduler, notifier) {
+export class ReminderModel {
+    constructor(reminderDict, database, scheduler) {
         this.sender = reminderDict.sender;
         this.target = reminderDict.target;
         this.message = reminderDict.message;
@@ -10,13 +10,12 @@ export class Reminder {
         this.timeString = reminderDict.time || null;
         this.rowId = reminderDict.id || null;
 
-        this.db = db;
+        this.database = database;
         this.scheduler = scheduler;
-        this.notifier = notifier;
     }
 
     init() {
-        this.rowId = this.db.saveReminder(this);
+        this.rowId = this.database.saveReminder(this);
         if (!this.rowId) {
             return false;
         }
@@ -45,17 +44,17 @@ export class Reminder {
             message += ` the next time ${whosThey} type in chat (ID ${this.rowId})`;
         }
 
-        this.notifier.notify(this.sender, message);
+        this.chatService.sendFormattedMessage(this.sender, message);
     }
 
     delete(user) {
-        const result = this.db.deleteReminder(user, this);
+        const result = this.database.deleteReminder(user, this);
         if (result.changes !== 0) this.scheduler.removeJob(this);
         this.notifyDelete(user, result);
     }
 
     notifyNonExistent(user) {
-        this.notifier.notify(
+        this.chatService.sendFormattedMessage(
             user,
             `Reminder with ID ${this.rowId} doesn't exist`,
         );
@@ -63,9 +62,9 @@ export class Reminder {
 
     notifyDelete(user, result) {
         if (result.changes == 0) {
-            this.notifier.notify(user, `Nono`);
+            this.chatService.sendFormattedMessage(user, `Nono`);
         } else {
-            this.notifier.notify(
+            this.chatService.sendFormattedMessage(
                 user,
                 `Reminder with ID ${this.rowId} has been unset`,
             );
@@ -74,7 +73,7 @@ export class Reminder {
 
     deliver() {
         this.notifyDeliver();
-        this.db.setReminderDelivered(this.rowId);
+        this.database.setReminderDelivered(this.rowId);
     }
 
     notifyDeliver() {
@@ -84,6 +83,6 @@ export class Reminder {
         const prefix = `reminder from ${target} (${timeSinceSet} ago)`;
         const suffix = this.message ? `: ${this.message}` : "";
 
-        this.notifier.notify(this.target, prefix + suffix);
+        this.chatService.sendFormattedMessage(this.target, prefix + suffix);
     }
 }

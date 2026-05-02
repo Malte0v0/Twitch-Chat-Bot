@@ -3,11 +3,10 @@ import { event } from "../../utils/events.js";
 import { convertToMs } from "../../utils/timeUtils.js";
 
 export class ReminderService {
-    constructor(db, scheduler, notifier) {
+    constructor(db, scheduler) {
         this.db = db;
         this.scheduler = scheduler;
-        this.notifier = notifier;
-        
+
         this.startListening();
 
         this.reminders = new Map();
@@ -47,7 +46,10 @@ export class ReminderService {
     deliverUserReminder(data) {
         const sender = data.payload.event.chatter_user_login;
         for (const [id, reminder] of this.reminders.entries()) {
-            if (reminder.triggerTime === null && reminder.target.toLowerCase() === sender.toLowerCase()) {
+            if (
+                reminder.triggerTime === null &&
+                reminder.target.toLowerCase() === sender.toLowerCase()
+            ) {
                 reminder.deliver();
                 this.reminders.delete(id);
             }
@@ -65,8 +67,13 @@ export class ReminderService {
                 message: reminderDb.message,
                 trigger_time: reminderDb.trigger_time,
                 created_at: reminderDb.created_at,
-            }
-            const reminder = new Reminder(reminderDict, this.db, this.scheduler, this.notifier);
+            };
+            const reminder = new Reminder(
+                reminderDict,
+                this.db,
+                this.scheduler,
+                this.notifier,
+            );
             this.reminders.set(reminder.rowId, reminder);
             reminder.schedule();
         }
@@ -77,25 +84,33 @@ export class ReminderService {
         const messageText = data.payload.event.message.text.trim().substring(1);
         const currentTime = Date.now();
 
-        const firstPattern = new RegExp(`^remind(?:me|\\s+(\\w+))\\s+in\\s+((?:\\d+\\s*\\w+\\s*)+)$`)
-        const secondPattern = new RegExp(`^remind(?:me|\\s+(\\w+))\\s+(.+)in\\s+((?:\\d+\\s*\\w+\\s*)+)$`);
-        const thirdPatternNoMessage = new RegExp(`^remind(?:me|\\s+(\\w+))\\s+in\\s+((?:\\d+\\s*\\w+\\s*)+)\\s+(.+)$`);
-        const fourthPatternNoTime = new RegExp(`^remind(?:me|\\s+(\\w+))\\s+(.+)$`);
+        const firstPattern = new RegExp(
+            `^remind(?:me|\\s+(\\w+))\\s+in\\s+((?:\\d+\\s*\\w+\\s*)+)$`,
+        );
+        const secondPattern = new RegExp(
+            `^remind(?:me|\\s+(\\w+))\\s+(.+)in\\s+((?:\\d+\\s*\\w+\\s*)+)$`,
+        );
+        const thirdPatternNoMessage = new RegExp(
+            `^remind(?:me|\\s+(\\w+))\\s+in\\s+((?:\\d+\\s*\\w+\\s*)+)\\s+(.+)$`,
+        );
+        const fourthPatternNoTime = new RegExp(
+            `^remind(?:me|\\s+(\\w+))\\s+(.+)$`,
+        );
 
         let match;
         let time = null;
         let message = null;
 
-        if (match = messageText.match(firstPattern)) {
+        if ((match = messageText.match(firstPattern))) {
             time = match[2];
             message = "";
-        } else if (match = messageText.match(secondPattern)) {
+        } else if ((match = messageText.match(secondPattern))) {
             time = match[3];
-            message = match[2]
-        } else if (match = messageText.match(thirdPatternNoMessage)) {
+            message = match[2];
+        } else if ((match = messageText.match(thirdPatternNoMessage))) {
             time = match[2];
             message = match[3];
-        } else if (match = messageText.match(fourthPatternNoTime)) {
+        } else if ((match = messageText.match(fourthPatternNoTime))) {
             message = match[2];
         }
 
@@ -110,7 +125,7 @@ export class ReminderService {
         let triggerTime = null;
         let timeToTarget = null;
         if (time) {
-            timeToTarget = convertToMs(time)
+            timeToTarget = convertToMs(time);
             triggerTime = currentTime + timeToTarget;
         }
 
@@ -121,12 +136,12 @@ export class ReminderService {
             trigger_time: triggerTime,
             created_at: currentTime,
             time: time,
-        }
+        };
     }
 
     createReminder(data) {
         const reminderDict = this._parseData(data);
-        const reminder = new Reminder(reminderDict, this.db, this.scheduler, this.notifier);
+        const reminder = new Reminder(reminderDict, this.db, this.scheduler);
         const result = reminder.init();
         if (!result) {
             return;
@@ -153,9 +168,12 @@ export class ReminderService {
 
         const rowId = Number(rowIdStr);
 
-        const reminder = this.reminders.get(rowId)
+        const reminder = this.reminders.get(rowId);
         if (!reminder) {
-            this.notifier.notify(user, `Reminder with ID ${rowId} doesn't exist`);
+            this.notifier.notify(
+                user,
+                `Reminder with ID ${rowId} doesn't exist`,
+            );
             return;
         }
 
