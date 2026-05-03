@@ -1,6 +1,5 @@
 import { TwitchClient } from "./twitchClient.js";
 import { TwitchMessageHandler } from "./twitchMessageHandler.js";
-import { CommandController } from "../commandController.js";
 
 export class TwitchService {
     constructor(commandPrefix, commandController) {

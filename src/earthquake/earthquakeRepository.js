@@ -31,7 +31,11 @@ export class EarthquakeRepository {
         );
 
         if (!result.lastInsertRowid) {
-            console.log("Error inserting earthquake in to db:", result, data);
+            console.log(
+                "Error inserting earthquake in to db:",
+                result,
+                quakeRawJSON,
+            );
         }
     }
 
@@ -42,7 +46,7 @@ export class EarthquakeRepository {
             UPDATE earthquakes SET notified = 1 WHERE unid = ?
         `,
             )
-            .run(id);
+            .run(rowId);
     }
 
     getAllNotified() {

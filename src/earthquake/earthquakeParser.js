@@ -21,7 +21,7 @@ export class EarthquakeParser {
 
             return quakeObject;
         } catch (error) {
-            console.log(data);
+            console.log(quakeRawJSON);
             console.warn(error);
         }
     }

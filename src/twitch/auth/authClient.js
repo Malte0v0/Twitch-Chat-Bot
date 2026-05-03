@@ -1,3 +1,6 @@
+import { updateEnvFile } from "./envFileService.js";
+import { URLSearchParams } from "url";
+
 export class AuthClient {
     constructor() {
         this._oauthToken = process.env.OAUTH_TOKEN;
@@ -50,7 +53,12 @@ export class AuthClient {
             const { access_token, refresh_token, expires_in } = data;
 
             // save to .env
-            updateEnvFile(access_token, refresh_token);
+            updateEnvFile(
+                access_token,
+                refresh_token,
+                this.clientId,
+                this.clientSecret,
+            );
 
             this._oauthToken = access_token;
             this._refreshToken = refresh_token;

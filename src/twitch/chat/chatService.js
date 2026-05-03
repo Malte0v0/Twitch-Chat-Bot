@@ -1,5 +1,4 @@
 import { sleep } from "../../utils/timeUtils.js";
-import { splitLength } from "../../utils/inputUtils.js";
 import { formatMessage } from "./messageFormatter.js";
 import { chatClient } from "./chatClient.js";
 
@@ -38,7 +37,7 @@ export class ChatService {
     }
 
     sendFormattedMessage(userName, message) {
-        messageFormatted = `@${userName}, ${message}`;
+        const messageFormatted = `@${userName}, ${message}`;
         this.sendChatMessage(messageFormatted).catch((error) =>
             console.warn(error),
         );

@@ -2,12 +2,14 @@ export class EventSubClient {
     constructor() {
         this.oauthToken = process.env.OAUTH_TOKEN;
         this.clientSecret = process.env.CLIENT_SECRET;
+        this.clientId = process.env.CLIENT_ID;
         this.botId = process.env.BOT_ID;
         this.chatId = process.env.CHAT_CHANNEL_USER_ID;
     }
 
     async registerEventSubListeners(sessionId) {
         try {
+            console.log(sessionId);
             let response = await fetch(
                 "https://api.twitch.tv/helix/eventsub/subscriptions",
                 {

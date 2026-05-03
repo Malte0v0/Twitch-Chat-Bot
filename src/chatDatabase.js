@@ -1,7 +1,5 @@
 import Database from "better-sqlite3";
 
-const ALLOWED_TABLES = ["reminders", "users", "locations", "earthquakes"];
-
 export class ChatDatabase extends Database {
     constructor(name = "database.db") {
         super(name);

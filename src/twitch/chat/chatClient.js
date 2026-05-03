@@ -1,3 +1,5 @@
+import { sleep } from "../../utils/timeUtils.js";
+
 export class chatClient {
     constructor(authService, botId) {
         this.authService = authService;

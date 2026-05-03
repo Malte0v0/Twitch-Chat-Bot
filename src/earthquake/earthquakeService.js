@@ -27,7 +27,7 @@ export class EarthquakeService {
                 this.onQuake(quakeRawJSON);
             } catch (error) {
                 console.error("Parse or handle error:", error);
-                console.error("Raw message:", raw);
+                console.error("Raw message:", quakeRawJSON);
             }
         });
 
@@ -51,7 +51,8 @@ export class EarthquakeService {
 
     shouldSend(quakeObject) {
         // Too long ago
-        if (Date.now() - Date.parse(time) > this.maxDelayMs) return false; // 1 hour ago
+        if (Date.now() - Date.parse(quakeObject.time) > this.maxDelayMs)
+            return false; // 1 hour ago
 
         // Too weak
         if (quakeObject.mag < this.minMag) return false;
