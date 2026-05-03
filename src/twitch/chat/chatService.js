@@ -23,13 +23,13 @@ export class ChatService {
         return this.chatId;
     }
 
-    async sendChatMessage(message, channelUserId = this.chatId) {
+    async sendChatMessage(message, chatId = this.chatId) {
         const messages = formatMessage(message, this.lastMessage);
 
         for (const message of messages) {
             this.messageQueue.push({
                 message: message,
-                channelUserId: channelUserId,
+                chatId: chatId,
             });
         }
 
@@ -49,6 +49,8 @@ export class ChatService {
 
         while (this.messageQueue.length > 0) {
             const { message, chatId } = this.messageQueue.shift();
+            console.log(message);
+            console.log(chatId);
 
             const success = await this.chatClient.sendMessage(message, chatId);
             if (!success) {

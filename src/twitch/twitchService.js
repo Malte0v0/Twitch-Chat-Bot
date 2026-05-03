@@ -8,7 +8,7 @@ export class TwitchService {
 
         this.commandPrefix = commandPrefix;
         this.commandRegex = new RegExp(
-            `^(?:\\${this.commandPrefix})(\\w+)(\\s.*)`,
+            `^(?:\\${this.commandPrefix})(\\w+)(\\s.*)?`,
         );
 
         this.twitchClient = new TwitchClient(this.defaultWsUrl);
@@ -40,10 +40,6 @@ export class TwitchService {
 
         this._onCommand = (command, messageText, data) => {
             this.commandController.executeCommand(command, messageText, data);
-            console.log("command: " + command);
-            console.log("messageText: " + messageText);
-            console.log("data" + data);
-            console.log("\n\n");
         };
 
         this.twitchClient.on("message", this._onMessage);

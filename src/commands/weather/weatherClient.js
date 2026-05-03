@@ -1,6 +1,6 @@
 export class WeatherClient {
-    constructor(API) {
-        this.weatherApi = API;
+    constructor() {
+        this.weatherApiKey = process.env.WEATHER_API;
     }
 
     async getWeather(cityName) {
@@ -10,7 +10,7 @@ export class WeatherClient {
                 return;
             }
             const response = await fetch(
-                `https://api.openweathermap.org/data/3.0/onecall?lat=${geocode.lat}&lon=${geocode.lon}&appid=${this.weatherApi}&units=metric`,
+                `https://api.openweathermap.org/data/3.0/onecall?lat=${geocode.lat}&lon=${geocode.lon}&appid=${this.weatherApiKey}&units=metric`,
             );
             if (!response.ok)
                 throw new Error("Network error:" + response.statusText);
@@ -25,7 +25,7 @@ export class WeatherClient {
     async getGeocode(cityName) {
         try {
             const response = await fetch(
-                `https://api.openweathermap.org/geo/1.0/direct?q=${cityName}&limit=1&appid=${this.weatherApi}`,
+                `https://api.openweathermap.org/geo/1.0/direct?q=${cityName}&limit=1&appid=${this.weatherApiKey}`,
             );
             if (!response.ok)
                 throw new Error(

@@ -32,6 +32,9 @@ export class CommandController {
         const userLogin = data.payload.event.chatter_user_login;
         const userId = data.payload.event.chatter_user_id;
 
+        console.log(command);
+        console.log(messageText);
+
         switch (command) {
             case "remind":
             case "remindme":

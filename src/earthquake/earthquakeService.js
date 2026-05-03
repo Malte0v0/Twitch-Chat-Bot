@@ -1,7 +1,7 @@
-import { EarthquakeClient } from "./earthquakeClient";
-import { EarthquakeParser } from "./earthquakeParser";
-import { EarthquakeRepository } from "./earthquakeRepository";
-import { GeonamesClient } from "./geonamesClient";
+import { EarthquakeClient } from "./earthquakeClient.js";
+import { EarthquakeParser } from "./earthquakeParser.js";
+import { EarthquakeRepository } from "./earthquakeRepository.js";
+import { GeonamesClient } from "./geonamesClient.js";
 
 export class EarthquakeService {
     constructor(chatService, database) {

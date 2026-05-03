@@ -3,3 +3,5 @@ node_modules
 test.js
 database*.db
 eslint.config.js
+test.db
+bot2.js

@@ -30,7 +30,7 @@ export class TwitchMessageHandler extends EventEmitter {
                 if (match && match[1]) {
                     const command = match[1];
                     messageText = match[2] ? match[2].trim() : messageText;
-                    this.emit("command", (command, messageText, data));
+                    this.emit("command", command, messageText, data);
                 }
             }
         } catch (error) {

@@ -9,21 +9,20 @@ export class WeatherService {
         this.weatherRepository = new WeatherRepository(database);
         this.weatherClient = new WeatherClient();
         this.weatherParser = new WeatherParser();
-
-        this.weatherApi = process.env.WEATHER_API;
     }
 
     async weatherCommand(messageText, userId) {
+        let cityName = "";
+
         if (messageText) {
-            const cityName = messageText;
+            cityName = messageText;
         } else {
-            const cityName = this.weatherRepository.getLocation(userId);
+            cityName = this.weatherRepository.getLocation(userId);
         }
 
-        console.log(cityName);
-
-        const [geocode, weatherJson] =
-            await this.weatherClient.getWeather(cityName);
+        const result = await this.weatherClient.getWeather(cityName);
+        if (!result) return;
+        const [geocode, weatherJson] = result;
 
         if (!geocode || !weatherJson) {
             return;
@@ -35,7 +34,7 @@ export class WeatherService {
         const country = geocode.country;
 
         await this.chatService.sendChatMessage(
-            `@${sender}, ${city}, ${country} (now): ${weather.emoji} ${weather.tempC}°C (${weather.tempF}°F), \
+            `@${userId}, ${city}, ${country} (now): ${weather.emoji} ${weather.tempC}°C (${weather.tempF}°F), \
             feels like ${weather.feelsLikeC}°C (${weather.feelsLikeF}°F). \
             UV index: ${weather.uvi}. Cloud cover: ${weather.clouds}%. \
             Wind speed: ${weather.windSpeed} m/s. Humidity: ${weather.humidity}%. \
