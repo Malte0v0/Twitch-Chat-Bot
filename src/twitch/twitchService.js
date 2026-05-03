@@ -3,9 +3,9 @@ import { TwitchMessageHandler } from "./twitchMessageHandler.js";
 import { CommandController } from "../commandController.js";
 
 export class TwitchService {
-    constructor(commandPrefix) {
-        // this.defaultWsUrl = "wss://eventsub.wss.twitch.tv/ws";
-        this.defaultWsUrl = "ws://127.0.0.1:8080/ws";
+    constructor(commandPrefix, commandController) {
+        this.defaultWsUrl = "wss://eventsub.wss.twitch.tv/ws";
+        // this.defaultWsUrl = "ws://127.0.0.1:8080/ws";
 
         this.commandPrefix = commandPrefix;
         this.commandRegex = new RegExp(
@@ -17,7 +17,7 @@ export class TwitchService {
             this.commandPrefix,
             this.commandRegex,
         );
-        // this.commandController = commandController;
+        this.commandController = commandController;
     }
 
     start() {
@@ -40,11 +40,7 @@ export class TwitchService {
         };
 
         this._onCommand = (command, messageText, data) => {
-            // this.commandController.executeCommand(
-            //     command,
-            //     messageText,
-            //     data,
-            // );
+            this.commandController.executeCommand(command, messageText, data);
             console.log("command: " + command);
             console.log("messageText: " + messageText);
             console.log("data" + data);

@@ -1,31 +1,32 @@
 export class EventSubClient {
-    constructor(authService, chatService, sessionId) {
-        this.authService = authService;
-        this.chatService = chatService;
-        this.sessionId = sessionId;
+    constructor() {
+        this.oauthToken = process.env.OAUTH_TOKEN;
+        this.clientSecret = process.env.CLIENT_SECRET;
+        this.botId = process.env.BOT_ID;
+        this.chatId = process.env.CHAT_CHANNEL_USER_ID;
     }
 
-    async registerEventSubListeners() {
+    async registerEventSubListeners(sessionId) {
         try {
             let response = await fetch(
                 "https://api.twitch.tv/helix/eventsub/subscriptions",
                 {
                     method: "POST",
                     headers: {
-                        Authorization: "Bearer " + this.authService.oauthToken,
-                        "Client-Id": this.authService.clientId,
+                        Authorization: "Bearer " + this.oauthToken,
+                        "Client-Id": this.clientId,
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
                         type: "channel.chat.message",
                         version: "1",
                         condition: {
-                            broadcaster_user_id: this.chatService.chatId,
-                            user_id: this.chatService.botId,
+                            broadcaster_user_id: this.chatId,
+                            user_id: this.botId,
                         },
                         transport: {
                             method: "websocket",
-                            session_id: this.sessionId,
+                            session_id: sessionId,
                         },
                     }),
                 },
@@ -46,10 +47,6 @@ export class EventSubClient {
             }
         } catch (error) {
             console.warn("Error registering EventSub listener:", error);
-
-            setTimeout(() => {
-                this.reconnect();
-            }, 5000);
         }
     }
 }

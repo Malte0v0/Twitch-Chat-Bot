@@ -2,7 +2,6 @@ export class AuthClient {
     constructor() {
         this._oauthToken = process.env.OAUTH_TOKEN;
         this._refreshToken = process.env.REFRESH_TOKEN;
-
         this._clientId = process.env.CLIENT_ID;
         this._clientSecret = process.env.CLIENT_SECRET;
     }
@@ -73,7 +72,7 @@ export class AuthClient {
 
         if (response.status != 200) {
             console.log("Token invalid. Refreshing...");
-            await this._refreshOAuthToken();
+            await this.refreshOAuthToken();
         } else {
             console.log("Validated token.");
         }
