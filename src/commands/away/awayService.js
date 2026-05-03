@@ -1,6 +1,6 @@
 import { event } from "../../utils/events.js";
 import { msToHuman } from "../../utils/timeUtils.js";
-import { AWAY_STATUS } from "../../utils/awayStatus.js";
+import { AWAY_STATUS } from "./awayStatus.js";
 import { AwayRepository } from "./awayRepository.js";
 
 export class AwayService {

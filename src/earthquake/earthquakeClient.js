@@ -1,3 +1,5 @@
+import { WebSocket } from "ws";
+
 export class EarthquakeClient extends EventEmitter {
     constructor(url) {
         super();

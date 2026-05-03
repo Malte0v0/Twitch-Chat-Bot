@@ -1,5 +1,5 @@
 import { URLSearchParams } from "url";
-import { AuthClient } from "./authClient";
+import { AuthClient } from "./authClient.js";
 
 export class AuthService {
     constructor() {

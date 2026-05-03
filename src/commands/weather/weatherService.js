@@ -1,6 +1,6 @@
-import { WeatherClient } from "./weatherClient";
-import { WeatherParser } from "./weatherParser";
-import { WeatherRepository } from "./weatherRepository";
+import { WeatherClient } from "./weatherClient.js";
+import { WeatherParser } from "./weatherParser.js";
+import { WeatherRepository } from "./weatherRepository.js";
 
 export class WeatherService {
     constructor(chatService, database) {

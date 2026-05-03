@@ -12,7 +12,7 @@ const commandPrefix = "$";
 const REFRESH_INTERVAL_MS = 2 * 60 * 60 * 1000;
 
 async function main() {
-    const db = new ChatDatabase();
+    const database = new ChatDatabase();
     const scheduler = new Scheduler();
     const authService = new AuthService();
     const chatService = new ChatService(authService);

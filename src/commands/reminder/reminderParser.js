@@ -10,7 +10,7 @@ export class ReminderParser {
         }
     }
 
-    parseData(userLogin, message) {
+    parseData(userLogin, messageText) {
         const currentTime = Date.now();
 
         const firstPattern = new RegExp(
@@ -30,16 +30,16 @@ export class ReminderParser {
         let time = null;
         let message = null;
 
-        if ((match = message.match(firstPattern))) {
+        if ((match = messageText.match(firstPattern))) {
             time = match[2];
             message = "";
-        } else if ((match = message.match(secondPattern))) {
+        } else if ((match = messageText.match(secondPattern))) {
             time = match[3];
             message = match[2];
-        } else if ((match = message.match(thirdPatternNoMessage))) {
+        } else if ((match = messageText.match(thirdPatternNoMessage))) {
             time = match[2];
             message = match[3];
-        } else if ((match = message.match(fourthPatternNoTime))) {
+        } else if ((match = messageText.match(fourthPatternNoTime))) {
             message = match[2];
         }
 

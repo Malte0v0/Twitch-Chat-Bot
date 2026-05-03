@@ -1,6 +1,6 @@
-import { Reminder } from "../../core/reminder.js";
 import { event } from "../../utils/events.js";
 import { convertToMs } from "../../utils/timeUtils.js";
+import { ReminderModel } from "./reminderModel.js";
 import { ReminderParser } from "./reminderParser.js";
 import { ReminderRepository } from "./reminderRepository.js";
 

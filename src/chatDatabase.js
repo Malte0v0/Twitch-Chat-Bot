@@ -6,11 +6,9 @@ export class ChatDatabase extends Database {
     constructor(name = "database.db") {
         super(name);
         super.pragma("foreign_keys = ON");
-
-        this._initializeDatabase();
     }
 
-    _initializeDatabase() {
+    initialize() {
         this.exec(`
             CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY,

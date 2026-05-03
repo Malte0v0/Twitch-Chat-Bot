@@ -5,7 +5,7 @@ import { NewsService } from "./commands/news/newsService.js";
 import { AwayService } from "./commands/away/awayService.js";
 import { QuotesService } from "./commands/quote/quotesService.js";
 import { TimeService } from "./commands/time/timeService.js";
-import { AWAY_STATUS } from "./utils/awayStatus.js";
+import { AWAY_STATUS } from "./commands/away/awayStatus.js";
 
 export class CommandController {
     constructor(chatService, database, scheduler) {

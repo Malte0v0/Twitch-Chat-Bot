@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { LocationRepository } from "./locationRepository";
+import { LocationRepository } from "./locationRepository.js";
 
 export class LocationService {
     constructor(chatService, database) {
