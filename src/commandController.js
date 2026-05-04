@@ -41,7 +41,7 @@ export class CommandController {
                 this.reminderService.createReminder(data);
                 break;
             case "unset":
-                this.reminderService.deleteReminder(data);
+                this.reminderService.delete(data);
                 break;
             case "printreminders":
                 this.reminderService.printReminders();

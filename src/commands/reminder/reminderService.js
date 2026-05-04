@@ -1,5 +1,4 @@
 import { event } from "../../utils/events.js";
-import { convertToMs } from "../../utils/timeUtils.js";
 import { ReminderModel } from "./reminderModel.js";
 import { ReminderParser } from "./reminderParser.js";
 import { ReminderRepository } from "./reminderRepository.js";
@@ -10,7 +9,6 @@ export class ReminderService {
         this.scheduler = scheduler;
 
         this.reminderRepository = new ReminderRepository(database);
-        this.reminderParser = new ReminderParser();
 
         this.startListening();
 
@@ -48,11 +46,11 @@ export class ReminderService {
         this.reminders.delete(reminder.rowId);
     }
 
-    deliverUserReminder(userLogin) {
+    deliverUserReminder(userId) {
         for (const [id, reminder] of this.reminders.entries()) {
             if (
                 reminder.triggerTime === null &&
-                reminder.target.toLowerCase() === userLogin.toLowerCase()
+                reminder.targetUserId === userId
             ) {
                 reminder.deliver();
                 this.reminders.delete(id);
@@ -61,20 +59,14 @@ export class ReminderService {
     }
 
     loadUndeliveredReminders() {
-        const remindersDb = this.reminderRepository.getUndeliveredReminders();
+        const remindersDb = this.reminderRepository.getAllUndelivered();
 
         for (const reminderDb of remindersDb) {
-            const reminderDict = {
-                id: reminderDb.id,
-                userLogin: reminderDb.userLogin,
-                target: reminderDb.target,
-                message: reminderDb.message,
-                trigger_time: reminderDb.trigger_time,
-                created_at: reminderDb.created_at,
-            };
+            const reminderDict = ReminderParser.parseDbData(reminderDb);
             const reminder = new ReminderModel(
-                reminderDict,
+                this.chatService,
                 this.reminderRepository,
+                reminderDict,
                 this.scheduler,
             );
             this.reminders.set(reminder.rowId, reminder);
@@ -82,11 +74,12 @@ export class ReminderService {
         }
     }
 
-    createReminder(data) {
-        const reminderDict = this.reminderParser.parseData(data);
+    createReminder(userLogin, messageText) {
+        const reminderDict = ReminderParser.parseData(userLogin, messageText);
         const reminder = new ReminderModel(
-            reminderDict,
+            this.chatService,
             this.reminderRepository,
+            reminderDict,
             this.scheduler,
         );
         const result = reminder.init();
@@ -96,21 +89,19 @@ export class ReminderService {
         this.reminders.set(reminder.rowId, reminder);
     }
 
-    deleteReminder(data) {
-        const [user, rowIdStr] = this.reminderParser.parseUnsetData(data);
-
+    delete(userLogin, rowIdStr) {
         const rowId = Number(rowIdStr);
 
         const reminder = this.reminders.get(rowId);
         if (!reminder) {
             this.chatService.sendFormattedMessage(
-                user,
+                userLogin,
                 `Reminder with ID ${rowId} doesn't exist`,
             );
             return;
         }
 
-        reminder.delete(user);
+        reminder.delete();
         this.reminders.delete(rowId);
     }
 }

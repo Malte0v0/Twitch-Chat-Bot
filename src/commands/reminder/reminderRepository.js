@@ -3,39 +3,39 @@ export class ReminderRepository {
         this.database = database;
     }
 
-    getUndeliveredReminders() {
+    getAllUndelivered() {
         const reminders = this.database
             .prepare(
                 `
-            SELECT * FROM reminders
-            WHERE delivered = 0
-        `,
+                SELECT * FROM reminders
+                WHERE delivered = 0
+                `,
             )
             .all();
 
         return reminders;
     }
 
-    setReminderDelivered(rowId) {
+    setDelivered(rowId) {
         this.database
             .prepare(
                 `
             UPDATE reminders SET delivered = 1 WHERE id = ?
-        `,
+            `,
             )
             .run(rowId);
     }
 
-    saveReminder(reminder) {
+    save(reminder) {
         const insert = this.database.prepare(`
-            INSERT INTO reminders (sender_id, target_id, message, created_at, trigger_time)
+            INSERT INTO reminders (sender_user_id, target_user_id, message, created_at, trigger_time)
             VALUES (?,?,?,?,?)
         `);
 
         try {
             const result = insert.run(
-                reminder.senderId,
-                reminder.targetId,
+                reminder.senderUserId,
+                reminder.targetUserId,
                 reminder.message,
                 reminder.createdAt,
                 reminder.triggerTime,
@@ -45,12 +45,12 @@ export class ReminderRepository {
 
             return rowId;
         } catch (error) {
-            console.log("Error in chatdatabse saveReminder: " + error);
+            console.log("Error in chatdatabse save: " + error);
             return null;
         }
     }
 
-    deleteReminder(rowId) {
+    delete(rowId) {
         const deleteQuery = this.database.prepare(`
             DELETE FROM reminders WHERE id = ?
         `);

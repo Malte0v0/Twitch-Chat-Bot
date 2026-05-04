@@ -3,7 +3,7 @@ export class AwayRepository {
         this.database = database;
     }
 
-    _checkStatus(status) {
+    _parseStatus(status) {
         // Update this too
         if (status) {
             const {
@@ -18,18 +18,21 @@ export class AwayRepository {
         }
     }
 
-    checkChatterStatus(userId) {
-        // Get from users table
+    getUserStatus(userId) {
         const status = this.database
             .prepare(
                 `
-            SELECT user_name, is_away, time, message FROM user_activity
-            WHERE user_id = ?
+            SELECT u.user_name, ua.is_away, ua.time, ua.message 
+            FROM user_activity ua
+            JOIN users u ON u.user_id = ua.user_id
+            WHERE ua.user_id = ?
             `,
             )
             .get(userId);
 
-        return this._checkStatus(status);
+        if (!status) return null;
+
+        return this._parseStatus(status);
     }
 
     toggleAwayStatus(userId, awayState, message = "") {
@@ -47,12 +50,12 @@ export class AwayRepository {
             .run(awayState, Date.now(), message, userId);
     }
 
-    insertChatterStatus(userId) {
+    insertNewUser(userId) {
         this.database
             .prepare(
                 `
         INSERT OR IGNORE INTO user_activity (user_id, time, message, is_away)
-        VALUES (?,?,?,?,?)
+        VALUES (?,?,?,?)
         `,
             )
             .run(userId, Date.now(), "", 0, 0);

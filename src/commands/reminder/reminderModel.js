@@ -1,9 +1,9 @@
 import { convertToMs, msToHuman } from "../../utils/timeUtils.js";
 
 export class ReminderModel {
-    constructor(chatService, reminderDict, database, scheduler) {
-        this.userLogin = reminderDict.userLogin;
-        this.target = reminderDict.target;
+    constructor(chatService, reminderRepository, reminderDict, scheduler) {
+        this.senderUserId = reminderDict.senderUserId;
+        this.targetUserId = reminderDict.targetUserId;
         this.message = reminderDict.message;
         this.triggerTime = reminderDict.trigger_time || null;
         this.createdAt = reminderDict.created_at;
@@ -16,7 +16,7 @@ export class ReminderModel {
     }
 
     init() {
-        this.rowId = this.reminderRepository.saveReminder(this);
+        this.rowId = this.reminderRepository.save(this);
         if (!this.rowId) {
             return false;
         }
@@ -34,24 +34,29 @@ export class ReminderModel {
     }
 
     notifyInit() {
-        const target = this.userLogin != this.target ? this.target : "you";
-        let message = `I will remind ${target}`;
+        const targetLogin =
+            this.senderUserId != this.targetUserId
+                ? this.userRepository.getUserLogin(this.targetUserId)
+                : "you";
+        let message = `I will remind ${targetLogin}`;
 
         if (this.timeString) {
             const timeUntil = msToHuman(convertToMs(this.timeString));
             message += ` in ${timeUntil} (ID ${this.rowId})`;
         } else {
-            const whosThey = target == "you" ? "you" : "they";
+            const whosThey = targetLogin == "you" ? "you" : "they";
             message += ` the next time ${whosThey} type in chat (ID ${this.rowId})`;
         }
 
-        this.chatService.sendFormattedMessage(this.userLogin, message);
+        this.chatService.sendFormattedMessage(
+            this.userRepository.getUserLogin(this.senderUserId),
+            message,
+        );
     }
 
-    delete(user) {
-        const result = this.reminderRepository.deleteReminder(user, this);
+    delete() {
+        const result = this.reminderRepository.delete(this.rowId);
         if (result.changes !== 0) this.scheduler.removeJob(this);
-        this.notifyDelete(user, result);
     }
 
     notifyNonExistent(user) {
@@ -74,17 +79,22 @@ export class ReminderModel {
 
     deliver() {
         this.notifyDeliver();
-        this.reminderRepository.setReminderDelivered(this.rowId);
+        this.reminderRepository.setDelivered(this.rowId);
     }
 
     notifyDeliver() {
         const target =
-            this.userLogin != this.target ? this.userLogin : "yourself";
+            this.senderUserId != this.targetUserId
+                ? this.senderUserId
+                : "yourself";
 
         const timeSinceSet = msToHuman(Date.now() - this.createdAt);
         const prefix = `reminder from ${target} (${timeSinceSet} ago)`;
         const suffix = this.message ? `: ${this.message}` : "";
 
-        this.chatService.sendFormattedMessage(this.target, prefix + suffix);
+        this.chatService.sendFormattedMessage(
+            this.targetUserId,
+            prefix + suffix,
+        );
     }
 }

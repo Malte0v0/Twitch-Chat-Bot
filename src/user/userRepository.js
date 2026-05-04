@@ -3,11 +3,22 @@ export class UserRepository {
         this.database = database;
     }
 
-    insertUser() {}
+    insertUser(userId) {
+        const result = this.database
+            .prepare(
+                `
+            SELECT * FROM users
+            WHERE user_id = ?
+            `,
+            )
+            .run(userId);
 
-    userExists() {}
+        if (!result) return null;
 
-    getUser() {
+        return result;
+    }
+
+    userExists(userId) {
         const user = this.database
             .prepare(
                 `
@@ -17,6 +28,34 @@ export class UserRepository {
             )
             .get(userId);
 
-        return this._checkStatus(status);
+        return user;
+    }
+
+    getUserLogin(userId) {
+        const row = this.database
+            .prepare(
+                `
+            SELECT user_login FROM users
+            WHERE user_id = ?
+            `,
+            )
+            .get(userId);
+
+        return row?.user_login ?? null;
+    }
+
+    getUserId(userName) {
+        userName = userName.toLowerCase().trim();
+
+        const row = this.database
+            .prepare(
+                `
+            SELECT user_id FROM users
+            WHERE user_name = ? OR user_login = ?
+            `,
+            )
+            .get(userName, userName);
+
+        return row?.user_id ?? null;
     }
 }

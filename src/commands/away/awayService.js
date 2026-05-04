@@ -21,9 +21,9 @@ export class AwayService {
         event.off("user_appeared", this.handleAway.bind(this));
     }
 
-    handleAway(userId, userLogin) {
+    handleReturn(userId, userName) {
         try {
-            const status = this.awayRepository.checkChatterStatus(userId);
+            const status = this.awayRepository.getUserStatus(userId);
 
             if (status && status.awayState != 0) {
                 const timeSince = msToHuman(Date.now() - status.time);
@@ -33,7 +33,7 @@ export class AwayService {
                         this.awayRepository.toggleAwayStatus(userId);
                         this.chatService
                             .sendChatMessage(
-                                `@${userLogin} is no longer AFK${status.message} (${timeSince})`,
+                                `@${userName} is no longer AFK${status.message} (${timeSince})`,
                             )
                             .catch((error) => {
                                 console.log(
@@ -46,7 +46,7 @@ export class AwayService {
                         this.awayRepository.toggleAwayStatus(userId);
                         this.chatService
                             .sendChatMessage(
-                                `@${userLogin} is no longer sleeping${status.message} (${timeSince})`,
+                                `@${userName} is no longer sleeping${status.message} (${timeSince})`,
                             )
                             .catch((error) => {
                                 console.log(
@@ -59,7 +59,7 @@ export class AwayService {
                         this.awayRepository.toggleAwayStatus(userId);
                         this.chatService
                             .sendChatMessage(
-                                `@${userLogin} is no longer showering${status.message} (${timeSince})`,
+                                `@${userName} is no longer showering${status.message} (${timeSince})`,
                             )
                             .catch((error) => {
                                 console.log(
@@ -78,10 +78,10 @@ export class AwayService {
     }
 
     async setAway(messageText, userId, userLogin, awayState = 1) {
-        let status = this.awayRepository.checkChatterStatus(userId);
+        let status = this.awayRepository.getUserStatus(userId);
         if (!status) {
-            this.awayRepository.insertChatterStatus(data);
-            status = this.awayRepository.checkChatterStatus(userId);
+            this.awayRepository.insertNewUser(userId);
+            status = this.awayRepository.getUserStatus(userId);
         }
 
         switch (awayState) {

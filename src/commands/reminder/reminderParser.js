@@ -1,16 +1,22 @@
-export class ReminderParser {
-    parseUnsetData(userLogin, message) {
-        const pattern = new RegExp(`^unset\\s+(\\d+)`);
-        const match = message.match(pattern);
+import { convertToMs } from ".../utils/timeUtils.js";
 
-        if (match && match[1]) {
-            return [userLogin, match[1]];
-        } else {
-            return;
-        }
+export class ReminderParser {
+    static parseDbData(reminderDb) {
+        const reminderDict = {
+            id: reminderDb.id,
+            senderUserId: reminderDb.sender_user_id,
+            targetUserId: reminderDb.target_user_id,
+            message: reminderDb.message,
+            createdAt: reminderDb.created_at,
+            triggerTime: reminderDb.trigger_time,
+            delivered: reminderDb.delivered,
+        };
+        return reminderDict;
     }
 
-    parseData(userLogin, messageText) {
+    static parseData(userId, userRepository, messageText) {
+        const userLogin = userRepository.getUserLogin(userId);
+
         const currentTime = Date.now();
 
         const firstPattern = new RegExp(
@@ -49,21 +55,20 @@ export class ReminderParser {
 
         if (!message) message = "";
 
-        const targetUser = match[1] || userLogin;
+        const targetUserName = match[1] || userLogin;
+        const targetUserId = userRepository.getUserId(targetUserName);
 
         let triggerTime = null;
-        let timeToTarget = null;
         if (time) {
-            timeToTarget = convertToMs(time);
-            triggerTime = currentTime + timeToTarget;
+            triggerTime = currentTime + convertToMs(time);
         }
 
         return {
-            userLogin: userLogin,
-            target: targetUser,
+            senderUserId: userLogin,
+            targetUserId: targetUserId,
             message: message,
-            trigger_time: triggerTime,
-            created_at: currentTime,
+            triggerTime: triggerTime,
+            createdAt: currentTime,
             time: time,
         };
     }
