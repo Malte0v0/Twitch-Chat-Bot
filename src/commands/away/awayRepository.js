@@ -8,9 +8,9 @@ export class AwayRepository {
         if (status) {
             const {
                 user_name: userName,
+                away_status: awayState,
                 time,
                 message,
-                is_away: awayState,
             } = status;
             return { userName, time, message, awayState };
         } else {
@@ -22,7 +22,7 @@ export class AwayRepository {
         const status = this.database
             .prepare(
                 `
-            SELECT u.user_name, ua.is_away, ua.time, ua.message 
+            SELECT u.user_name, ua.away_status, ua.time, ua.message 
             FROM user_activity ua
             JOIN users u ON u.user_id = ua.user_id
             WHERE ua.user_id = ?
@@ -35,29 +35,36 @@ export class AwayRepository {
         return this._parseStatus(status);
     }
 
-    toggleAwayStatus(userId, awayState, message = "") {
+    toggleAway(userId, awayState, message = "") {
+        const isAway = this.getUserStatus(userId)?.awayState > 0;
+
         this.database
             .prepare(
                 `
             UPDATE user_activity
             SET
-                is_away = CASE WHEN is_away = 0 THEN ? ELSE 0 END,
-                time = CASE WHEN is_away = 0 THEN ? ELSE 0 END,
-                message = CASE WHEN is_away = 0 THEN ? ELSE '' END
+                away_status = ?,
+                time = ?,
+                message = ?
             WHERE user_id = ?
         `,
             )
-            .run(awayState, Date.now(), message, userId);
+            .run(
+                isAway ? 0 : awayState,
+                isAway ? 0 : Date.now(),
+                isAway ? "" : message,
+                userId,
+            );
     }
 
     insertNewUser(userId) {
         this.database
             .prepare(
                 `
-        INSERT OR IGNORE INTO user_activity (user_id, time, message, is_away)
+        INSERT OR IGNORE INTO user_activity (user_id, time, message, away_status)
         VALUES (?,?,?,?)
         `,
             )
-            .run(userId, Date.now(), "", 0, 0);
+            .run(userId, Date.now(), "", 0);
     }
 }

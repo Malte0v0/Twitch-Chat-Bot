@@ -18,7 +18,7 @@ export class ChatDatabase extends Database {
         this.exec(`
             CREATE TABLE IF NOT EXISTS user_activity (
             user_id INTEGER PRIMARY KEY REFERENCES users(user_id) NOT NULL,
-            is_away INTEGER NOT NULL DEFAULT 0,
+            away_status INTEGER NOT NULL DEFAULT 0,
             time INTEGER NOT NULL,
             message TEXT NOT NULL
             )    

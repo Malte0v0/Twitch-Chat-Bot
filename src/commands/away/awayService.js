@@ -3,6 +3,12 @@ import { msToHuman } from "../../utils/timeUtils.js";
 import { AWAY_STATUS } from "./awayStatus.js";
 import { AwayRepository } from "./awayRepository.js";
 
+const AWAY_STATES = {
+    [AWAY_STATUS.afk]: "AFK",
+    [AWAY_STATUS.asleep]: "sleeping",
+    [AWAY_STATUS.showering]: "showering",
+};
+
 export class AwayService {
     constructor(chatService, database) {
         this.chatService = chatService;
@@ -10,15 +16,26 @@ export class AwayService {
     }
 
     start() {
-        this.startListening();
+        this._startListening();
+    }
+
+    stop() {
+        this._stopListening();
     }
 
     _startListening() {
-        event.on("user_appeared", this.handleAway.bind(this));
+        this.onUserAppear = (data) => {
+            this.handleReturn(
+                data.payload.event.chatter_user_id,
+                data.payload.event.chatter_user_name,
+            );
+        };
+
+        event.on("user_appeared", this.onUserAppear.bind(this));
     }
 
     _stopListening() {
-        event.off("user_appeared", this.handleAway.bind(this));
+        event.off("user_appeared", this.onUserAppear);
     }
 
     handleReturn(userId, userName) {
@@ -26,50 +43,28 @@ export class AwayService {
             const status = this.awayRepository.getUserStatus(userId);
 
             if (status && status.awayState != 0) {
+                const awayState = status.awayState;
                 const timeSince = msToHuman(Date.now() - status.time);
 
-                switch (status.awayState) {
-                    case AWAY_STATUS.afk:
-                        this.awayRepository.toggleAwayStatus(userId);
-                        this.chatService
-                            .sendChatMessage(
-                                `@${userName} is no longer AFK${status.message} (${timeSince})`,
-                            )
-                            .catch((error) => {
-                                console.log(
-                                    "Error when trying to send chat message in statusService: ",
-                                    error,
-                                );
-                            });
-                        break;
-                    case AWAY_STATUS.asleep:
-                        this.awayRepository.toggleAwayStatus(userId);
-                        this.chatService
-                            .sendChatMessage(
-                                `@${userName} is no longer sleeping${status.message} (${timeSince})`,
-                            )
-                            .catch((error) => {
-                                console.log(
-                                    "Error when trying to send chat message in statusService: ",
-                                    error,
-                                );
-                            });
-                        break;
-                    case AWAY_STATUS.showering:
-                        this.awayRepository.toggleAwayStatus(userId);
-                        this.chatService
-                            .sendChatMessage(
-                                `@${userName} is no longer showering${status.message} (${timeSince})`,
-                            )
-                            .catch((error) => {
-                                console.log(
-                                    "Error when trying to send chat message in statusService: ",
-                                    error,
-                                );
-                            });
-                        break;
-                    default:
-                        break;
+                const label = AWAY_STATES[awayState];
+
+                if (label) {
+                    this.awayRepository.toggleAway(userId, awayState);
+
+                    if (status.message) {
+                        status.message = ": " + status.message;
+                    }
+
+                    this.chatService
+                        .sendChatMessage(
+                            `@${userName} is no longer ${label}${status.message} (${timeSince})`,
+                        )
+                        .catch((error) => {
+                            console.log(
+                                "Error when trying to send chat message in statusService: ",
+                                error,
+                            );
+                        });
                 }
             }
         } catch (error) {
@@ -84,39 +79,18 @@ export class AwayService {
             status = this.awayRepository.getUserStatus(userId);
         }
 
-        switch (awayState) {
-            case AWAY_STATUS.afk:
-                this.awayRepository.toggleAwayStatus(
-                    userId,
-                    AWAY_STATUS.afk,
-                    messageText,
-                );
-                await this.chatService.sendChatMessage(
-                    `${userLogin} is now AFK${messageText}`,
-                );
-                break;
-            case AWAY_STATUS.asleep:
-                this.awayRepository.toggleAwayStatus(
-                    userId,
-                    AWAY_STATUS.asleep,
-                    messageText,
-                );
-                await this.chatService.sendChatMessage(
-                    `${userLogin} is now sleeping${messageText}`,
-                );
-                break;
-            case AWAY_STATUS.showering:
-                this.awayRepository.toggleAwayStatus(
-                    userId,
-                    AWAY_STATUS.showering,
-                    messageText,
-                );
-                await this.chatService.sendChatMessage(
-                    `${userLogin} is now showering xqcShower ${messageText}`,
-                );
-                break;
-            default:
-                break;
+        const label = AWAY_STATES[awayState];
+
+        if (label) {
+            this.awayRepository.toggleAway(userId, awayState, messageText);
+
+            if (messageText) {
+                messageText = ": " + messageText;
+            }
+
+            await this.chatService.sendChatMessage(
+                `@${userLogin} is now ${label}${messageText}`,
+            );
         }
     }
 }
