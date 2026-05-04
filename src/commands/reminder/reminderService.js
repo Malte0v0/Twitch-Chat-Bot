@@ -4,13 +4,12 @@ import { ReminderParser } from "./reminderParser.js";
 import { ReminderRepository } from "./reminderRepository.js";
 
 export class ReminderService {
-    constructor(chatService, database, scheduler) {
+    constructor(chatService, userRepository, database, scheduler) {
         this.chatService = chatService;
+        this.userRepository = userRepository;
         this.scheduler = scheduler;
 
         this.reminderRepository = new ReminderRepository(database);
-
-        this.startListening();
 
         this.reminders = new Map();
         this.loadUndeliveredReminders();
@@ -46,11 +45,13 @@ export class ReminderService {
         this.reminders.delete(reminder.rowId);
     }
 
-    deliverUserReminder(userId) {
+    deliverUserReminder(data) {
+        const userId = data.payload.event.chatter_user_id;
+
         for (const [id, reminder] of this.reminders.entries()) {
             if (
                 reminder.triggerTime === null &&
-                reminder.targetUserId === userId
+                reminder.targetUserId == userId
             ) {
                 reminder.deliver();
                 this.reminders.delete(id);
@@ -66,6 +67,7 @@ export class ReminderService {
             const reminder = new ReminderModel(
                 this.chatService,
                 this.reminderRepository,
+                this.userRepository,
                 reminderDict,
                 this.scheduler,
             );
@@ -74,11 +76,25 @@ export class ReminderService {
         }
     }
 
-    create(userLogin, messageText) {
-        const reminderDict = ReminderParser.parseData(userLogin, messageText);
+    create(userId, messageText) {
+        const reminderDict = ReminderParser.parseData(
+            userId,
+            this.userRepository,
+            messageText,
+        );
+
+        if (!this.userRepository.userExists(reminderDict.targetUserId)) {
+            this.chatService.sendFormattedMessage(
+                this.userRepository.getUserName(userId),
+                "This user has not been registered in the database",
+            );
+            return;
+        }
+
         const reminder = new ReminderModel(
             this.chatService,
             this.reminderRepository,
+            this.userRepository,
             reminderDict,
             this.scheduler,
         );
@@ -89,7 +105,7 @@ export class ReminderService {
         this.reminders.set(reminder.rowId, reminder);
     }
 
-    delete(userLogin, rowIdStr) {
+    delete(userLogin, userId, rowIdStr) {
         const rowId = Number(rowIdStr);
 
         const reminder = this.reminders.get(rowId);
@@ -103,5 +119,9 @@ export class ReminderService {
 
         reminder.delete();
         this.reminders.delete(rowId);
+        this.chatService.sendFormattedMessage(
+            userLogin,
+            `Reminder with ID ${rowId} has been unset`,
+        );
     }
 }

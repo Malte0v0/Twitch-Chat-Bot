@@ -44,6 +44,19 @@ export class UserRepository {
         return row?.user_login ?? null;
     }
 
+    getUserName(userId) {
+        const row = this.database
+            .prepare(
+                `
+            SELECT user_name FROM users
+            WHERE user_id = ?
+            `,
+            )
+            .get(userId);
+
+        return row?.user_name ?? null;
+    }
+
     getUserId(userName) {
         userName = userName.toLowerCase().trim();
 

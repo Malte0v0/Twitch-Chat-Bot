@@ -7,6 +7,10 @@ export class UserService {
         this.userRepository = new UserRepository(database);
     }
 
+    getUserRepository() {
+        return this.userRepository;
+    }
+
     startListening() {
         this.onUserAppear = (data) => {
             const { userId, userLogin, userName } = UserParser.parse(data);

@@ -64,7 +64,7 @@ export class ReminderParser {
         }
 
         return {
-            senderUserId: userLogin,
+            senderUserId: userId,
             targetUserId: targetUserId,
             message: message,
             triggerTime: triggerTime,

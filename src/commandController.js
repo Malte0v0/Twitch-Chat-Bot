@@ -6,6 +6,7 @@ import { AwayService } from "./commands/away/awayService.js";
 import { QuotesService } from "./commands/quote/quotesService.js";
 import { TimeService } from "./commands/time/timeService.js";
 import { AWAY_STATUS } from "./commands/away/awayStatus.js";
+import { UserService } from "./user/userService.js";
 
 export class CommandController {
     constructor(chatService, database, scheduler) {
@@ -13,15 +14,22 @@ export class CommandController {
         this.database = database;
         this.scheduler = scheduler;
 
+        const userService = new UserService(database);
+        userService.startListening();
+        const userRepository = userService.getUserRepository();
+
         this.reminderService = new ReminderService(
             chatService,
+            userRepository,
             database,
             scheduler,
         );
+        this.reminderService.startListening();
         this.weatherService = new WeatherService(chatService, database);
         this.locationService = new LocationService(chatService, database);
         this.newsService = new NewsService(chatService);
         this.awayService = new AwayService(chatService, database);
+        this.awayService.start();
         this.quotesService = new QuotesService(chatService);
         this.timeService = new TimeService(chatService);
 
@@ -36,10 +44,13 @@ export class CommandController {
         switch (command) {
             case "remind":
             case "remindme":
-                this.reminderService.create(data);
+                this.reminderService.create(
+                    userId,
+                    (command + " " + messageText).trim(),
+                );
                 break;
             case "unset":
-                this.reminderService.delete(data);
+                this.reminderService.delete(userLogin, userId, messageText);
                 break;
             case "printreminders":
                 this.reminderService.print();
