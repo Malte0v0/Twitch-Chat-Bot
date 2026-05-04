@@ -30,7 +30,7 @@ export class EarthquakeClient extends EventEmitter {
         this.wsClient.on("close", (code, reason) => {
             console.warn("Earthquake websocket was closed", code, reason);
             this.emit("close", (code, reason));
-            this.disconnect();
+            this.reconnect();
         });
     }
 

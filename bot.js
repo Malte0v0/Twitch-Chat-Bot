@@ -1,33 +1,48 @@
-import { AuthService } from "./src/services/authService.js";
-import { ChatService } from "./src/services/chatService.js";
-import { EarthquakeService } from "./src/services/earthquakeService.js";
-import { TwitchService } from "./src/services/twitchService.js";
-import { NitterService } from "./src/services/nitterService.js";
-import { Commands } from "./src/core/commands.js";
-import { Scheduler } from "./src/core/scheduler.js";
-import { ChatDatabase } from "./src/core/chatDatabase.js";
+import { ChatDatabase } from "./src/chatDatabase.js";
+import { Scheduler } from "./src/scheduler.js";
+import { AuthService } from "./src/twitch/auth/authService.js";
+import { TwitchService } from "./src/twitch/twitchService.js";
+import { ChatService } from "./src/twitch/chat/chatService.js";
+import { CommandController } from "./src/commandController.js";
+import { EarthquakeService } from "./src/earthquake/earthquakeService.js";
+// import { UserService } from "./src/user/userService.js";
+// import { AwayService } from "./src/commands/away/awayService.js";
+// import { ReminderService } from "./src/commands/reminder/reminderService.js";
 import "dotenv/config";
 
 const commandPrefix = "$";
 const REFRESH_INTERVAL_MS = 2 * 60 * 60 * 1000;
 
 async function main() {
-    const database = new ChatDatabase();
+    const database = new ChatDatabase("database.db");
+    database.initialize();
     const scheduler = new Scheduler();
+
     const authService = new AuthService();
+    authService.getAuth();
     const chatService = new ChatService(authService);
-    const commands = new Commands(chatService, db, scheduler, commandPrefix);
 
-    const earthquakeService = new EarthquakeService(chatService, db);
-    const nitterService = new NitterService(chatService);
+    // const awayService = new AwayService(chatService, database);
+    // awayService.start();
 
-    const twitchService = new TwitchService(
-        authService,
+    // const reminderService = new ReminderService(
+    //     chatService,
+    //     userRepository,
+    //     database,
+    //     scheduler,
+    // );
+    // reminderService.startListening();
+
+    const commandController = new CommandController(
         chatService,
-        nitterService,
-        commands,
-        commandPrefix,
+        database,
+        scheduler,
     );
+    const twitchService = new TwitchService(commandPrefix, commandController);
+    twitchService.start();
+
+    const earthquakeService = new EarthquakeService(chatService, database);
+    earthquakeService.start();
 
     setInterval(() => {
         authService.refreshOAuthToken().catch(console.error);
