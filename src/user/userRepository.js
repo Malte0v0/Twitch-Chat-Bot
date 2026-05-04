@@ -3,15 +3,15 @@ export class UserRepository {
         this.database = database;
     }
 
-    insertUser(userId) {
+    insertUser(userId, userLogin, userName) {
         const result = this.database
             .prepare(
                 `
-            SELECT * FROM users
-            WHERE user_id = ?
+            INSERT INTO users (user_id, user_login, user_name)
+            VALUES (?,?,?)
             `,
             )
-            .run(userId);
+            .run(userId, userLogin, userName);
 
         if (!result) return null;
 

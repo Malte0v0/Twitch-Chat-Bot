@@ -49,8 +49,6 @@ export class ChatService {
 
         while (this.messageQueue.length > 0) {
             const { message, chatId } = this.messageQueue.shift();
-            console.log(message);
-            console.log(chatId);
 
             const success = await this.chatClient.sendMessage(message, chatId);
             if (!success) {

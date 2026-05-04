@@ -11,13 +11,22 @@ export class WeatherService {
         this.weatherParser = new WeatherParser();
     }
 
-    async weatherCommand(messageText, userId) {
-        let cityName = "";
+    async weatherCommand(messageText, userId, userName) {
+        let cityName = null;
 
-        if (messageText) {
+        if (messageText.is) {
             cityName = messageText;
         } else {
             cityName = this.weatherRepository.getLocation(userId);
+        }
+
+        console.log(messageText, userId, userName, cityName);
+
+        if (!cityName) {
+            await this.chatService.sendChatMessage(
+                `@${userName}, Could not get location`,
+            );
+            return;
         }
 
         const result = await this.weatherClient.getWeather(cityName);
@@ -34,7 +43,7 @@ export class WeatherService {
         const country = geocode.country;
 
         await this.chatService.sendChatMessage(
-            `@${userId}, ${city}, ${country} (now): ${weather.emoji} ${weather.tempC}°C (${weather.tempF}°F), \
+            `@${userName}, ${city}, ${country} (now): ${weather.emoji} ${weather.tempC}°C (${weather.tempF}°F), \
             feels like ${weather.feelsLikeC}°C (${weather.feelsLikeF}°F). \
             UV index: ${weather.uvi}. Cloud cover: ${weather.clouds}%. \
             Wind speed: ${weather.windSpeed} m/s. Humidity: ${weather.humidity}%. \

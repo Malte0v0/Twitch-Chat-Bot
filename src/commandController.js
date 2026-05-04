@@ -29,27 +29,25 @@ export class CommandController {
     }
 
     async executeCommand(command, messageText, data) {
-        const userLogin = data.payload.event.chatter_user_login;
         const userId = data.payload.event.chatter_user_id;
-
-        console.log(command);
-        console.log(messageText);
+        const userLogin = data.payload.event.chatter_user_login;
+        const userName = data.payload.event.chatter_user_name;
 
         switch (command) {
             case "remind":
             case "remindme":
-                this.reminderService.createReminder(data);
+                this.reminderService.create(data);
                 break;
             case "unset":
                 this.reminderService.delete(data);
                 break;
             case "printreminders":
-                this.reminderService.printReminders();
+                this.reminderService.print();
                 break;
             case "weather":
             case "w":
                 await this.weatherService
-                    .weatherCommand(messageText, data)
+                    .weatherCommand(messageText, userId, userName)
                     .catch((error) => {
                         console.warn("Weather command failed:", error);
                     });
@@ -57,7 +55,8 @@ export class CommandController {
             case "location":
                 await this.locationService.locationCommand(
                     messageText,
-                    userLogin,
+                    userId,
+                    userName,
                 );
                 break;
             case "news":

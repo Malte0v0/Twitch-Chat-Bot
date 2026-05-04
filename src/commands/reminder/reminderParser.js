@@ -1,4 +1,4 @@
-import { convertToMs } from ".../utils/timeUtils.js";
+import { convertToMs } from "../../utils/timeUtils.js";
 
 export class ReminderParser {
     static parseDbData(reminderDb) {

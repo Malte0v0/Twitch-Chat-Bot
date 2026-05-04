@@ -39,7 +39,7 @@ export class TwitchService {
         };
 
         this._onCommand = (command, messageText, data) => {
-            this.commandController.executeCommand(command, messageText, data);
+            this.commandController.handleCommand(command, messageText, data);
         };
 
         this.twitchClient.on("message", this._onMessage);

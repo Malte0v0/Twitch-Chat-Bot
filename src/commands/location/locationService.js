@@ -6,7 +6,7 @@ export class LocationService {
         this.locationRepository = new LocationRepository(database);
     }
 
-    async locationCommand(messageText, userId, userLogin) {
+    async locationCommand(messageText, userId, userName) {
         const result = this.locationRepository.insertLocation(
             userId,
             messageText,
@@ -14,7 +14,7 @@ export class LocationService {
 
         if (result.lastInsertRowid) {
             await this.chatService.sendChatMessage(
-                `@${userLogin}, your default location has been set to ${messageText}`,
+                `@${userName}, your default location has been set to ${messageText}`,
             );
         }
     }

@@ -7,8 +7,8 @@ export class WeatherRepository {
         const location = this.database
             .prepare(
                 `
-            SELECT location FROM location
-            WHERE sender = ?
+            SELECT location FROM locations
+            WHERE user_id = ?
         `,
             )
             .get(userId);

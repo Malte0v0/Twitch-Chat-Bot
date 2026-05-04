@@ -22,7 +22,7 @@ export class ReminderService {
         // }
     }
 
-    printReminders() {
+    print() {
         console.log(this.reminders);
     }
 
@@ -74,7 +74,7 @@ export class ReminderService {
         }
     }
 
-    createReminder(userLogin, messageText) {
+    create(userLogin, messageText) {
         const reminderDict = ReminderParser.parseData(userLogin, messageText);
         const reminder = new ReminderModel(
             this.chatService,

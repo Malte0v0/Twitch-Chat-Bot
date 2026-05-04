@@ -5,7 +5,7 @@ export class LocationRepository {
 
     insertLocation(userId, location) {
         const insert = this.database.prepare(`
-            INSERT OR REPLACE INTO location (user_id, location)
+            INSERT OR REPLACE INTO locations (user_id, location)
             VALUES (?,?)
         `);
         const result = insert.run(userId, location);
