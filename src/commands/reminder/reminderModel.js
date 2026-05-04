@@ -82,11 +82,11 @@ export class ReminderModel {
 
         const targetName =
             this.senderUserId != this.targetUserId
-                ? targetUserName
+                ? senderUserName
                 : "yourself";
 
         const timeSinceSet = msToHuman(Date.now() - this.createdAt);
-        const prefix = `reminder from ${senderUserName} (${timeSinceSet} ago)`;
+        const prefix = `reminder from ${targetName} (${timeSinceSet} ago)`;
         const suffix = this.message ? `: ${this.message}` : "";
 
         this.chatService.sendFormattedMessage(targetUserName, prefix + suffix);
