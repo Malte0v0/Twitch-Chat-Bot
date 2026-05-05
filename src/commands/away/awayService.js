@@ -72,7 +72,7 @@ export class AwayService {
         }
     }
 
-    async setAway(messageText, userId, userLogin, awayState = 1) {
+    async setAway(messageText, userId, userName, awayState = 1) {
         let status = this.awayRepository.getUserStatus(userId);
         if (!status) {
             this.awayRepository.insertNewUser(userId);
@@ -89,7 +89,7 @@ export class AwayService {
             }
 
             await this.chatService.sendChatMessage(
-                `@${userLogin} is now ${label}${messageText}`,
+                `@${userName} is now ${label}${messageText}`,
             );
         }
     }

@@ -24,9 +24,7 @@ export class TwitchMessageHandler extends EventEmitter {
 
         try {
             if (messageText.toLowerCase().startsWith(this.commandPrefix)) {
-                const match = messageText
-                    .toLowerCase()
-                    .match(this.commandRegex);
+                const match = messageText.match(this.commandRegex);
                 if (match && match[1]) {
                     const command = match[1];
                     messageText = match[2] ? match[2].trim() : "";

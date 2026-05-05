@@ -81,7 +81,7 @@ export class CommandController {
                 await this.awayService.setAway(
                     messageText,
                     userId,
-                    userLogin,
+                    userName,
                     AWAY_STATUS.afk,
                 );
                 break;
@@ -89,7 +89,7 @@ export class CommandController {
                 await this.awayService.setAway(
                     messageText,
                     userId,
-                    userLogin,
+                    userName,
                     AWAY_STATUS.asleep,
                 );
                 break;
@@ -97,7 +97,7 @@ export class CommandController {
                 await this.awayService.setAway(
                     messageText,
                     userId,
-                    userLogin,
+                    userName,
                     AWAY_STATUS.showering,
                 );
                 break;
