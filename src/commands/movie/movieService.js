@@ -59,8 +59,11 @@ export class MovieService {
         this.chatService.sendMessage("This weeks nominated movies:");
 
         for (const rawWeekMovie of rawWeekMovies) {
+            console.log(rawWeekMovie);
             const movie = JSON.parse(rawWeekMovie.json);
-            this.chatService.sendMessage(MovieFormatter.showMovie(movie));
+            this.chatService.sendMessage(
+                rawWeekMovie.movie_id + ". " + MovieFormatter.showMovie(movie),
+            );
         }
     }
 
