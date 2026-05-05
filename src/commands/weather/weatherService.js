@@ -20,8 +20,6 @@ export class WeatherService {
             cityName = this.weatherRepository.getLocation(userId);
         }
 
-        console.log(messageText, userId, userName, cityName);
-
         if (!cityName) {
             await this.chatService.sendChatMessage(
                 `@${userName}, Could not get location`,

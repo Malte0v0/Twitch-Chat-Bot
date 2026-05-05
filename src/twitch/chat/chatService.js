@@ -36,6 +36,10 @@ export class ChatService {
         this.processQueue();
     }
 
+    sendMessage(message) {
+        this.sendChatMessage(message).catch((error) => console.warn(error));
+    }
+
     sendFormattedMessage(userName, message) {
         const messageFormatted = `@${userName}, ${message}`;
         this.sendChatMessage(messageFormatted).catch((error) =>

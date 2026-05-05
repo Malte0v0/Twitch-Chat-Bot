@@ -7,6 +7,7 @@ import { QuotesService } from "./commands/quote/quotesService.js";
 import { TimeService } from "./commands/time/timeService.js";
 import { AWAY_STATUS } from "./commands/away/awayStatus.js";
 import { UserService } from "./user/userService.js";
+import { MovieService } from "./commands/movie/movieService.js";
 
 export class CommandController {
     constructor(chatService, database, scheduler) {
@@ -32,6 +33,9 @@ export class CommandController {
         this.awayService.start();
         this.quotesService = new QuotesService(chatService);
         this.timeService = new TimeService(chatService);
+
+        this.movieSerivce = new MovieService(database, chatService);
+        this.movieSerivce.init();
 
         this.execute = this.debounce(this.executeCommand, 500);
     }
@@ -102,6 +106,19 @@ export class CommandController {
                 break;
             case "time":
                 await this.timeService.timeCommand();
+                break;
+            case "nominate":
+                this.movieSerivce.nominateCommand(
+                    userId,
+                    userName,
+                    messageText,
+                );
+                break;
+            case "movies":
+                this.movieSerivce.moviesCommand();
+                break;
+            case "unsetmovie":
+                this.movieSerivce.unsetNominationCommand(userId, userName);
                 break;
         }
     }

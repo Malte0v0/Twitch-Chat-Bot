@@ -44,6 +44,23 @@ export class ChatDatabase extends Database {
         `);
 
         this.exec(`
+            CREATE TABLE IF NOT EXISTS movies (
+            movie_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            omdb_id TEXT NOT NULL,
+            json TEXT
+            )        
+        `);
+
+        this.exec(`
+            CREATE TABLE IF NOT EXISTS weekly_movies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER REFERENCES users(user_id) NOT NULL,
+            week_num INTEGER NOT NULL,
+            movie_id INTEGER REFERENCES movies(movie_id) NOT NULL
+            )        
+        `);
+
+        this.exec(`
             CREATE TABLE IF NOT EXISTS earthquakes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             unid TEXT NOT NULL,
