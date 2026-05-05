@@ -1,0 +1,25 @@
+{
+  "name": "js_chatbot",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "dotenv": "^16.5.0",
+    "graphql-ws": "^6.0.5",
+    "pm2": "^6.0.14",
+    "rss-parser": "^3.13.0",
+    "ws": "^8.18.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0"
+  }
+}
