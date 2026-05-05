@@ -5,9 +5,6 @@ import { TwitchService } from "./src/twitch/twitchService.js";
 import { ChatService } from "./src/twitch/chat/chatService.js";
 import { CommandController } from "./src/commandController.js";
 import { EarthquakeService } from "./src/earthquake/earthquakeService.js";
-// import { UserService } from "./src/user/userService.js";
-// import { AwayService } from "./src/commands/away/awayService.js";
-// import { ReminderService } from "./src/commands/reminder/reminderService.js";
 import "dotenv/config";
 
 const commandPrefix = "$";
@@ -19,19 +16,9 @@ async function main() {
     const scheduler = new Scheduler();
 
     const authService = new AuthService();
-    authService.getAuth();
+    await authService.getAuth();
+
     const chatService = new ChatService(authService);
-
-    // const awayService = new AwayService(chatService, database);
-    // awayService.start();
-
-    // const reminderService = new ReminderService(
-    //     chatService,
-    //     userRepository,
-    //     database,
-    //     scheduler,
-    // );
-    // reminderService.startListening();
 
     const commandController = new CommandController(
         chatService,

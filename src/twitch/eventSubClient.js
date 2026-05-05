@@ -1,6 +1,5 @@
 export class EventSubClient {
     constructor() {
-        this.oauthToken = process.env.OAUTH_TOKEN;
         this.clientSecret = process.env.CLIENT_SECRET;
         this.clientId = process.env.CLIENT_ID;
         this.botUserId = process.env.BOT_USER_ID;
@@ -8,6 +7,7 @@ export class EventSubClient {
     }
 
     async registerEventSubListeners(sessionId) {
+        const oauthToken = process.env.OAUTH_TOKEN;
         try {
             console.log(sessionId);
             let response = await fetch(
@@ -15,7 +15,7 @@ export class EventSubClient {
                 {
                     method: "POST",
                     headers: {
-                        Authorization: "Bearer " + this.oauthToken,
+                        Authorization: "Bearer " + oauthToken,
                         "Client-Id": this.clientId,
                         "Content-Type": "application/json",
                     },

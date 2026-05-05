@@ -22,10 +22,10 @@ export class AuthService {
     }
 
     async refreshOAuthToken() {
-        this.authClient.refreshOAuthToken();
+        await this.authClient.refreshOAuthToken();
     }
 
     async getAuth() {
-        this.authClient.getAuth();
+        await this.authClient.getAuth();
     }
 }

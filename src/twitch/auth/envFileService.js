@@ -25,6 +25,9 @@ export function updateEnvFile(
     env["CLIENT_SECRET"] = clientSecret;
     env["REFRESH_TOKEN"] = newRefreshToken;
 
+    process.env.OAUTH_TOKEN = newOAuthToken;
+    process.env.REFRESH_TOKEN = newRefreshToken;
+
     const updatedEnv = Object.entries(env)
         .map(([key, value]) => `${key}=${value}`)
         .join("\n");

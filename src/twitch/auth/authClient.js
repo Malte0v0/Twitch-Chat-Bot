@@ -70,7 +70,7 @@ export class AuthClient {
         }
     }
 
-    async getAuth() {
+    async getAuth(retrying = false) {
         let response = await fetch("https://id.twitch.tv/oauth2/validate", {
             method: "GET",
             headers: {
@@ -79,10 +79,16 @@ export class AuthClient {
         });
 
         if (response.status != 200) {
+            if (retrying) {
+                console.error("Token still invalid after refresh. Aborting.");
+                return false;
+            }
             console.log("Token invalid. Refreshing...");
             await this.refreshOAuthToken();
-        } else {
-            console.log("Validated token.");
+            return await this.getAuth(true);
         }
+
+        console.log("Validated token.");
+        return true;
     }
 }
