@@ -68,7 +68,9 @@ export class TwitchClient extends EventEmitter {
                 case "session_welcome":
                     this._sessionId = session.id;
                     this._status = session.status;
-                    this.registerEventSub(session.id);
+                    if (this._status != "reconnecting") {
+                        this.registerEventSub(session.id);
+                    }
                     this.emit("welcome", session);
                     console.log(`(${this._sessionId}) session_welcome`);
                     break;

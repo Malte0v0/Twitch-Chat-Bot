@@ -32,7 +32,7 @@ export class HeartrateMonitor {
         this.startListening();
         this.heartbeat = setInterval(() => {
             const delta = (Date.now() - this.lastKeepaliveMessage) / 1000;
-            if (delta > this.keepaliveTimeoutSeconds + 5000) {
+            if (delta > this.keepaliveTimeoutSeconds + 5) {
                 this.client.reconnect();
                 console.log(
                     `(${this.client.sessionId}) Twitch WebSocket connection presumed dead (${delta} s since last message), reconnecting...`,
