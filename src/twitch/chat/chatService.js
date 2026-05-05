@@ -4,10 +4,10 @@ import { chatClient } from "./chatClient.js";
 
 export class ChatService {
     constructor(authService) {
-        this.botId = process.env.BOT_ID;
-        this.chatId = process.env.CHAT_CHANNEL_USER_ID;
+        this._botUserId = process.env.BOT_USER_ID;
+        this._chatUserId = process.env.CHAT_USER_ID;
 
-        this.chatClient = new chatClient(authService, this.botId);
+        this.chatClient = new chatClient(authService, this._botUserId);
 
         this.lastMessage = undefined;
         this.messageQueue = [];
@@ -16,20 +16,20 @@ export class ChatService {
     }
 
     get botUserId() {
-        return this.botId;
+        return this._botUserId;
     }
 
     get chatChannelUserId() {
-        return this.chatId;
+        return this._chatUserId;
     }
 
-    async sendChatMessage(message, chatId = this.chatId) {
+    async sendChatMessage(message, chatUserId = this._chatUserId) {
         const messages = formatMessage(message, this.lastMessage);
 
         for (const message of messages) {
             this.messageQueue.push({
                 message: message,
-                chatId: chatId,
+                chatUserId: chatUserId,
             });
         }
 
@@ -48,12 +48,15 @@ export class ChatService {
         this.isSending = true;
 
         while (this.messageQueue.length > 0) {
-            const { message, chatId } = this.messageQueue.shift();
+            const { message, chatUserId } = this.messageQueue.shift();
 
-            const success = await this.chatClient.sendMessage(message, chatId);
+            const success = await this.chatClient.sendMessage(
+                message,
+                chatUserId,
+            );
             if (!success) {
                 console.warn("Requeuing failed message:", message);
-                this.messageQueue.unshift({ message, chatId });
+                this.messageQueue.unshift({ message, chatUserId });
                 await sleep(2000);
             } else {
                 this.lastMessage = message;

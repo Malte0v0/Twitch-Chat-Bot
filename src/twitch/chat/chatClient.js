@@ -1,12 +1,12 @@
 import { sleep } from "../../utils/timeUtils.js";
 
 export class chatClient {
-    constructor(authService, botId) {
+    constructor(authService, botUserId) {
         this.authService = authService;
-        this.botId = botId;
+        this.botUserId = botUserId;
     }
 
-    async sendMessage(message, chatId) {
+    async sendMessage(message, chatUserId) {
         try {
             const response = await fetch(
                 "https://api.twitch.tv/helix/chat/messages",
@@ -18,8 +18,8 @@ export class chatClient {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        broadcaster_id: chatId,
-                        sender_id: this.botId,
+                        broadcaster_id: chatUserId,
+                        sender_id: this.botUserId,
                         message: message,
                     }),
                 },

@@ -3,8 +3,8 @@ export class EventSubClient {
         this.oauthToken = process.env.OAUTH_TOKEN;
         this.clientSecret = process.env.CLIENT_SECRET;
         this.clientId = process.env.CLIENT_ID;
-        this.botId = process.env.BOT_ID;
-        this.chatId = process.env.CHAT_CHANNEL_USER_ID;
+        this.botUserId = process.env.BOT_USER_ID;
+        this.chatUserId = process.env.CHAT_USER_ID;
     }
 
     async registerEventSubListeners(sessionId) {
@@ -23,8 +23,8 @@ export class EventSubClient {
                         type: "channel.chat.message",
                         version: "1",
                         condition: {
-                            broadcaster_user_id: this.chatId,
-                            user_id: this.botId,
+                            broadcaster_user_id: this.chatUserId,
+                            user_id: this.botUserId,
                         },
                         transport: {
                             method: "websocket",

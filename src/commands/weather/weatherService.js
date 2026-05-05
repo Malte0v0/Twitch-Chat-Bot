@@ -14,7 +14,7 @@ export class WeatherService {
     async weatherCommand(messageText, userId, userName) {
         let cityName = null;
 
-        if (messageText.is) {
+        if (messageText) {
             cityName = messageText;
         } else {
             cityName = this.weatherRepository.getLocation(userId);
