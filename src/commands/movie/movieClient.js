@@ -39,7 +39,7 @@ export class MovieClient {
         this.addToCache(omdb_id, json);
         this.addToDatabase(omdb_id, json);
 
-        return json;
+        return { json, cachedAt: Date.now() };
     }
 
     async fetchWithCacheByMovieId(omdb_id) {
