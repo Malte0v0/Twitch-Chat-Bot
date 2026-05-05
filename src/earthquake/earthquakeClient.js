@@ -6,6 +6,21 @@ export class EarthquakeClient extends EventEmitter {
         super();
         this.url = url;
         this.reconnectInterval = 1000;
+
+        this.pingInterval = null;
+        this.wsClient = null;
+    }
+
+    startPinging(intervalTimeMs = 15000) {
+        this.pingInterval = setInterval(() => {
+            if (this.wsClient.readyState === WebSocket.OPEN) {
+                this.wsClient.ping();
+            }
+        }, intervalTimeMs);
+    }
+
+    stopPinging() {
+        clearInterval(this.pingInterval);
     }
 
     connect() {
@@ -14,6 +29,7 @@ export class EarthquakeClient extends EventEmitter {
 
         this.wsClient.on("open", () => {
             console.log("WebSocket connection opened to " + this.url);
+            this.startPinging();
         });
 
         this.wsClient.on("message", (data) => {
