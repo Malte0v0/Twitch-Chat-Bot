@@ -43,6 +43,9 @@ export class MovieClient {
     }
 
     async fetchWithCacheByMovieId(omdb_id) {
-        return this.cache.get(omdb_id) || this.fetchById(omdb_id);
+        if (this.cache.has(omdb_id)) {
+            return this.cache.get(omdb_id);
+        }
+        return await this.fetchById(omdb_id);
     }
 }
