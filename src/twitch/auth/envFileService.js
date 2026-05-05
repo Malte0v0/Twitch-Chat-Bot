@@ -10,7 +10,7 @@ export function updateEnvFile(
     clientId,
     clientSecret,
 ) {
-    const envPath = resolve(__dirname, "../../.env");
+    const envPath = resolve(__dirname, "../../../.env");
     let env = {};
     const lines = fs.readFileSync(envPath, "utf-8").split("\n");
     lines.forEach((line) => {
