@@ -13,17 +13,23 @@ export class HeartrateMonitor {
             this.resetTimer();
         };
 
-        this._onKeepalive = () => {
+        this._onEventOrKeepalive = () => {
             this.resetTimer();
         };
 
         this.client.on("welcome", this._onWelcome);
-        this.client.on("keepalive", this._onKeepalive);
+        this.client.on("keepalive", this._onEventOrKeepalive);
+        this.client.on("message", this._onEventOrKeepalive);
+        this.client.on("session_reconnect", this._onEventOrKeepalive);
+        this.client.on("revocation", this._onEventOrKeepalive);
     }
 
     stopListening() {
         this.client.off("welcome", this._onWelcome);
-        this.client.off("keepalive", this._onKeepalive);
+        this.client.on("keepalive", this._onEventOrKeepalive);
+        this.client.on("message", this._onEventOrKeepalive);
+        this.client.on("session_reconnect", this._onEventOrKeepalive);
+        this.client.on("revocation", this._onEventOrKeepalive);
     }
 
     resetTimer() {
