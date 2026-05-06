@@ -26,10 +26,10 @@ export class HeartrateMonitor {
 
     stopListening() {
         this.client.off("welcome", this._onWelcome);
-        this.client.on("keepalive", this._onEventOrKeepalive);
-        this.client.on("message", this._onEventOrKeepalive);
-        this.client.on("session_reconnect", this._onEventOrKeepalive);
-        this.client.on("revocation", this._onEventOrKeepalive);
+        this.client.off("keepalive", this._onEventOrKeepalive);
+        this.client.off("message", this._onEventOrKeepalive);
+        this.client.off("session_reconnect", this._onEventOrKeepalive);
+        this.client.off("revocation", this._onEventOrKeepalive);
     }
 
     resetTimer() {
@@ -44,15 +44,6 @@ export class HeartrateMonitor {
 
     start() {
         this.startListening();
-        this.heartbeat = setInterval(() => {
-            const delta = (Date.now() - this.lastKeepaliveMessage) / 1000;
-            if (delta > this.keepaliveTimeoutSeconds + 5) {
-                this.client.reconnect();
-                console.log(
-                    `(${this.client.sessionId}) Twitch WebSocket connection presumed dead (${delta} s since last message), reconnecting...`,
-                );
-            }
-        }, 5000);
     }
 
     stop() {
