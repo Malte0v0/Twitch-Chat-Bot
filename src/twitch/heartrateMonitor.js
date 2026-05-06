@@ -20,6 +20,7 @@ export class HeartrateMonitor {
         this.client.on("welcome", this._onWelcome);
         this.client.on("keepalive", this._onEventOrKeepalive);
         this.client.on("message", this._onEventOrKeepalive);
+        this.client.on("notification", this._onEventOrKeepalive);
         this.client.on("reconnect", this._onEventOrKeepalive);
         this.client.on("revocation", this._onEventOrKeepalive);
     }
@@ -28,19 +29,24 @@ export class HeartrateMonitor {
         this.client.off("welcome", this._onWelcome);
         this.client.off("keepalive", this._onEventOrKeepalive);
         this.client.off("message", this._onEventOrKeepalive);
+        this.client.off("notification", this._onEventOrKeepalive);
         this.client.off("reconnect", this._onEventOrKeepalive);
         this.client.off("revocation", this._onEventOrKeepalive);
     }
 
     resetTimer() {
+        console.log("Resetting timer");
         clearTimeout(this.heartbeat);
         if (!this.keepaliveTimeoutSeconds) return;
-        this.heartbeat = setTimeout(() => {
-            console.log(
-                `(${this.client.sessionId}) Twitch WebSocket connection presumed dead, reconnecting...`,
-            );
-            this.client.reconnect();
-        }, this.keepaliveTimeoutSeconds * 1000);
+        this.heartbeat = setTimeout(
+            () => {
+                console.log(
+                    `(${this.client.sessionId}) Twitch WebSocket connection presumed dead, reconnecting...`,
+                );
+                this.client.reconnect();
+            },
+            (this.keepaliveTimeoutSeconds + 5) * 1000,
+        );
     }
 
     start() {

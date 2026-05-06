@@ -43,7 +43,10 @@ export class TwitchClient extends EventEmitter {
     }
 
     stopHeartrateMonitor() {
-        this.heartrateMonitor.stop();
+        if (this.heartrateMonitor) {
+            this.heartrateMonitor.stop();
+            this.heartrateMonitor = null;
+        }
     }
 
     registerEventSub(sessionId) {
@@ -105,7 +108,7 @@ export class TwitchClient extends EventEmitter {
                 code,
             );
             this.emit("close", code, reason);
-            this.disconnect(this.ws);
+            // this.disconnect(this.ws);
         });
     }
 
