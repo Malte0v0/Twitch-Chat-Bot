@@ -75,9 +75,6 @@ export class TwitchClient extends EventEmitter {
                     console.log(`(${this._sessionId}) session_welcome`);
                     break;
                 case "session_keepalive":
-                    this.heartrateMonitor.insertLastKeepaliveMessage(
-                        Date.now(),
-                    );
                     this.emit("keepalive");
                     break;
                 case "notification":
