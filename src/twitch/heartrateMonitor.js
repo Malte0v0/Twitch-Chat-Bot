@@ -35,7 +35,6 @@ export class HeartrateMonitor {
     }
 
     resetTimer() {
-        console.log("Resetting timer");
         clearTimeout(this.heartbeat);
         if (!this.keepaliveTimeoutSeconds) return;
         this.heartbeat = setTimeout(
