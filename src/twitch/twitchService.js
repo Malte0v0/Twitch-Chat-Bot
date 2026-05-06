@@ -59,19 +59,25 @@ export class TwitchService {
         if (reason)
             console.log(`Twitch WebSocket reconnecting due to: ${reason}`);
 
-        // Make a new connection before disconnecting the old one
         const oldClient = this.twitchClient;
         this.twitchClient = new TwitchClient(this.defaultWsUrl);
-        this.twitchClient.start(url);
 
-        if (oldClient.status == "reconnecting") {
-            this.twitchClient.on("welcome", () => {
-                oldClient.disconnect();
+        if (oldClient.status === "reconnecting") {
+            this.twitchClient.once("welcome", () => {
                 oldClient.stop();
             });
         } else {
-            oldClient.disconnect();
             oldClient.stop();
         }
+
+        this.twitchClient.start(url);
+        this.rewireListeners(oldClient);
+    }
+
+    rewireListeners(oldClient) {
+        oldClient.off("message", this._onMessage);
+        oldClient.off("reconnect", this._onReconnect);
+        this.twitchClient.on("message", this._onMessage);
+        this.twitchClient.on("reconnect", this._onReconnect);
     }
 }

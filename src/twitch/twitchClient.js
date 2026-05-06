@@ -27,7 +27,7 @@ export class TwitchClient extends EventEmitter {
         return this._status;
     }
 
-    start(url = this.defaultWsUrl) {
+    start(url = this.defaultUrl) {
         this.startHeartrateMonitor();
         this.connect(url);
     }
