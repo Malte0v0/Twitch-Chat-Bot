@@ -71,14 +71,27 @@ export class AuthClient {
     }
 
     async getAuth(retrying = false) {
-        let response = await fetch("https://id.twitch.tv/oauth2/validate", {
-            method: "GET",
-            headers: {
-                Authorization: "OAuth " + this._oauthToken,
-            },
-        });
+        // Claude
+        let response;
+        try {
+            response = await fetch("https://id.twitch.tv/oauth2/validate", {
+                method: "GET",
+                signal: AbortSignal.timeout(10000), // don't hang forever
+                headers: {
+                    Authorization: "OAuth " + this._oauthToken,
+                },
+            });
+        } catch (error) {
+            // Network blip — not an auth failure, just retry after a delay
+            console.warn(
+                "Network error during token validation, will retry:",
+                error.message,
+            );
+            await new Promise((res) => setTimeout(res, 5000));
+            return await this.getAuth(retrying); // preserve retry state
+        }
 
-        if (response.status != 200) {
+        if (response.status !== 200) {
             if (retrying) {
                 console.error("Token still invalid after refresh. Aborting.");
                 return false;
