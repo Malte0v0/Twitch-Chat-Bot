@@ -30,7 +30,7 @@ export class TwitchService {
     }
 
     startListening() {
-        this._onMessage = (data) => {
+        this._onNotification = (data) => {
             this.twitchMessageHandler.handleMessage(data);
         };
 
@@ -42,7 +42,7 @@ export class TwitchService {
             this.commandController.handleCommand(command, messageText, data);
         };
 
-        this.twitchClient.on("message", this._onMessage);
+        this.twitchClient.on("notification", this._onNotification);
 
         this.twitchClient.on("reconnect", this._onReconnect);
 
@@ -50,7 +50,7 @@ export class TwitchService {
     }
 
     stopListening() {
-        this.twitchClient.off("message", this._onMessage);
+        this.twitchClient.off("notification", this._onNotification);
         this.twitchClient.off("reconnect", this._onReconnect);
         this.twitchMessageHandler.off("command", this._onCommand);
     }
@@ -76,9 +76,9 @@ export class TwitchService {
     }
 
     rewireListeners(oldClient) {
-        oldClient.off("message", this._onMessage);
+        oldClient.off("message", this._onNotification);
         oldClient.off("reconnect", this._onReconnect);
-        this.twitchClient.on("message", this._onMessage);
+        this.twitchClient.on("message", this._onNotification);
         this.twitchClient.on("reconnect", this._onReconnect);
     }
 }

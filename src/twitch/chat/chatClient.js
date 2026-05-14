@@ -1,4 +1,4 @@
-import { sleep } from "../../utils/timeUtils.js";
+import { ChatError } from "../../errors/errors.js";
 
 export class chatClient {
     constructor(authService, botUserId) {
@@ -6,9 +6,10 @@ export class chatClient {
         this.botUserId = botUserId;
     }
 
-    async sendMessage(message, chatUserId) {
+    async sendMessage(message, chatUserId, attempts) {
+        let response;
         try {
-            const response = await fetch(
+            response = await fetch(
                 "https://api.twitch.tv/helix/chat/messages",
                 {
                     method: "POST",
@@ -24,25 +25,25 @@ export class chatClient {
                     }),
                 },
             );
-
-            if (response.status === 401 || response.status === 403) {
-                await this.authService.refreshOAuthToken();
-                return false;
-            } else if (response.status === 429) {
-                console.log("Rate limit reached, retrying in 2 seconds...");
-                await sleep(2000);
-                return false;
-            } else if (!response.ok) {
-                let data = await response.json();
-                console.error("Failed to send chat message");
-                console.error(data);
-                return false;
-            }
-
-            return true;
         } catch (error) {
-            console.error("Network or other error:", error);
-            return false;
+            throw new ChatError("Fetch failed", error);
         }
+
+        const data = await response.json();
+
+        if (response.status === 401 || response.status === 403) {
+            await this.authService.refreshOAuthToken();
+            if (attempts > 1) {
+                throw new ChatError(
+                    "Failed to send Twitch chat message even after retrying",
+                    data,
+                );
+            }
+            await this.sendMessage(message, chatUserId, attempts + 1);
+        } else if (!response.ok) {
+            throw new ChatError("Failed to send Twitch chat message", data);
+        }
+
+        return data;
     }
 }

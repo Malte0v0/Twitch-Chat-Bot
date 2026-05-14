@@ -1,3 +1,5 @@
+import { EventSubError } from "../errors/errors";
+
 export class EventSubClient {
     constructor() {
         this.clientSecret = process.env.CLIENT_SECRET;
@@ -8,9 +10,11 @@ export class EventSubClient {
 
     async registerEventSubListeners(sessionId) {
         const oauthToken = process.env.OAUTH_TOKEN;
+
+        let response;
         try {
-            console.log(sessionId);
-            let response = await fetch(
+            console.log(`${sessionId} Registering Twitch eventsub`);
+            response = await fetch(
                 "https://api.twitch.tv/helix/eventsub/subscriptions",
                 {
                     method: "POST",
@@ -33,22 +37,20 @@ export class EventSubClient {
                     }),
                 },
             );
-
-            const data = await response.json();
-
-            if (response.status !== 202) {
-                console.error(
-                    "Failed to subscribe to channel.chat.message. API call returned status code " +
-                        response.status,
-                );
-                console.error(data);
-            } else {
-                console.log(
-                    `Subscribed to channel.chat.message [${data.data[0].id}]`,
-                );
-            }
         } catch (error) {
-            console.warn("Error registering EventSub listener:", error);
+            throw new EventSubError(
+                "Error when registering Twitch eventsub",
+                error,
+            );
+        }
+
+        const data = await response.json();
+
+        if (response.status !== 202) {
+            throw new EventSubError(
+                `${sessionId} Registering Twitch eventsub failed`,
+                data,
+            );
         }
     }
 }

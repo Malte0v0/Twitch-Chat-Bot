@@ -2,6 +2,7 @@ import { HeartrateMonitor } from "./heartrateMonitor.js";
 import { EventEmitter } from "events";
 import { WebSocket } from "ws";
 import { EventSubClient } from "./eventSubClient.js";
+import { logTime } from "../errors/log.js";
 
 export class TwitchClient extends EventEmitter {
     constructor(url) {
@@ -51,6 +52,7 @@ export class TwitchClient extends EventEmitter {
 
     registerEventSub(sessionId) {
         this.eventSubClient.registerEventSubListeners(sessionId);
+        logTime(`${sessionId} Subscribed to Twitch eventsub`);
     }
 
     connect(url = this.defaultUrl) {
@@ -67,6 +69,8 @@ export class TwitchClient extends EventEmitter {
 
             const session = data.payload.session;
 
+            this.emit("message", data);
+
             switch (messageType) {
                 case "session_welcome":
                     this._sessionId = session.id;
@@ -81,7 +85,7 @@ export class TwitchClient extends EventEmitter {
                     this.emit("keepalive");
                     break;
                 case "notification":
-                    this.emit("message", data);
+                    this.emit("notification", data);
                     break;
                 case "session_reconnect":
                     this._status = session.status;
