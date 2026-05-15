@@ -35,13 +35,15 @@ export class chatClient {
             await this.authService.refreshOAuthToken();
             if (attempts > 1) {
                 throw new ChatError(
-                    "Failed to send Twitch chat message even after retrying",
+                    `Failed to send Twitch chat message even after retrying. Status: ${JSON.stringify(data)}`,
                     data,
                 );
             }
             await this.sendMessage(message, chatUserId, attempts + 1);
         } else if (!response.ok) {
-            throw new ChatError("Failed to send Twitch chat message", data);
+            throw new ChatError(
+                `Failed to send Twitch chat message Status: ${JSON.stringify(data)}`,
+            );
         }
 
         return data;

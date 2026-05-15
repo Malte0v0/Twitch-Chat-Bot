@@ -13,17 +13,17 @@ export class HeartrateMonitor {
             this.resetTimer();
         };
 
-        this._onNotification = () => {
+        this._onMessage = () => {
             this.resetTimer();
         };
 
         this.client.on("welcome", this._onWelcome);
-        this.client.on("notification", this._onNotification);
+        this.client.on("message", this._onMessage);
     }
 
     stopListening() {
         this.client.off("welcome", this._onWelcome);
-        this.client.off("notification", this._onNotification);
+        this.client.off("message", this._onMessage);
     }
 
     resetTimer() {

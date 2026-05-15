@@ -48,8 +48,7 @@ export class EventSubClient {
 
         if (response.status !== 202) {
             throw new EventSubError(
-                `${sessionId} Registering Twitch eventsub failed`,
-                data,
+                `${sessionId} Registering Twitch eventsub failed with status ${response.status}: ${JSON.stringify(data)}`,
             );
         }
     }

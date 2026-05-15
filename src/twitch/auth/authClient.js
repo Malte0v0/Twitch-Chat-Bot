@@ -44,12 +44,15 @@ export class AuthClient {
             body: params,
         });
 
+        let data = await response.json();
+
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new TokenRefreshError("Error refreshing token", errorData);
+            throw new TokenRefreshError(
+                "Error refreshing token",
+                JSON.stringify(data),
+            );
         }
 
-        let data = await response.json();
         const { access_token, refresh_token, expires_in } = data;
 
         // save to .env
@@ -91,7 +94,7 @@ export class AuthClient {
         if (!response.ok) {
             if (attempts >= 1) {
                 throw new TokenValidateError(
-                    "Twitch token still invalid after retry",
+                    `Twitch token still invalid after retry. Status: ${response.status}`,
                 );
             }
             await this.refreshOAuthToken();
