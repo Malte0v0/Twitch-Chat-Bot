@@ -67,7 +67,7 @@ export class TwitchService {
         if (reason) logTime(`Twitch WebSocket reconnecting due to: ${reason}`);
 
         const oldClient = this.twitchClient;
-        this.twitchClient = new TwitchClient(url);
+        this.twitchClient = new TwitchClient(url, oldClient.status);
         oldClient.stopHeartrateMonitor();
 
         if (oldClient.status === "reconnecting") {

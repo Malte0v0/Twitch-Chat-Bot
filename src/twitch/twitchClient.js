@@ -6,7 +6,7 @@ import { logTime } from "../errors/log.js";
 import { ParseError, WebSocketError } from "../errors/errors.js";
 
 export class TwitchClient extends EventEmitter {
-    constructor(url) {
+    constructor(url, status = null) {
         super();
 
         this.defaultUrl = url;
@@ -16,7 +16,7 @@ export class TwitchClient extends EventEmitter {
         this.heartrateMonitor = null;
 
         this._sessionId = null;
-        this._status = null;
+        this._status = status;
 
         this.eventSubClient = new EventSubClient();
     }
@@ -92,12 +92,12 @@ export class TwitchClient extends EventEmitter {
             switch (messageType) {
                 case "session_welcome":
                     this._sessionId = session.id;
-                    this._status = session.status;
                     if (this._status != "reconnecting") {
                         this.registerEventSub(session.id).catch((error) => {
                             this.emit("error", error);
                         });
                     }
+                    this._status = session.status;
                     this.emit("welcome", session);
                     logTime(`(${this._sessionId}) session_welcome`);
                     break;
