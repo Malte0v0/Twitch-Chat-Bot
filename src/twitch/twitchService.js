@@ -4,8 +4,8 @@ import { TwitchMessageHandler } from "./twitchMessageHandler.js";
 
 export class TwitchService {
     constructor(commandPrefix, commandController) {
-        // this.defaultWsUrl = "wss://eventsub.wss.twitch.tv/ws";
-        this.defaultWsUrl = "ws://127.0.0.1:8080/ws";
+        this.defaultWsUrl = "wss://eventsub.wss.twitch.tv/ws";
+        // this.defaultWsUrl = "ws://127.0.0.1:8080/ws";
 
         this.commandPrefix = commandPrefix;
         this.commandRegex = new RegExp(

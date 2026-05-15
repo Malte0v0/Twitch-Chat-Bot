@@ -1,5 +1,6 @@
 import { AlreadyNominatedError } from "../../errors/errors.js";
 import { UserHasntNominatedError } from "../../errors/errors.js";
+import { getWeekNumber } from "../../utils/timeUtils.js";
 
 export class MovieRepository {
     constructor(database) {
@@ -38,10 +39,10 @@ export class MovieRepository {
         const result = this.database
             .prepare(
                 `SELECT user_id FROM weekly_movies
-                WHERE user_id = ?
+                WHERE user_id = ? AND week_num = ?
                 `,
             )
-            .get(userId);
+            .get(userId, getWeekNumber());
 
         if (result?.user_id != null) {
             return true;
