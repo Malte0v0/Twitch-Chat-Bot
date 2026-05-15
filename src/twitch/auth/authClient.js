@@ -1,6 +1,7 @@
 import { updateEnvFile } from "./envFileService.js";
 import { URLSearchParams } from "url";
 import { TokenRefreshError, TokenValidateError } from "../../errors/errors.js";
+import { logTime } from "../../errors/log.js";
 
 export class AuthClient {
     constructor() {
@@ -36,32 +37,42 @@ export class AuthClient {
             client_secret: this._clientSecret,
         });
 
-        let response = await fetch(this.refreshTokenUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: params,
-        });
+        let response;
+        try {
+            response = await fetch(this.refreshTokenUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: params,
+            });
+        } catch (error) {
+            throw new TokenRefreshError(
+                "Network error when refreshing Twitch token",
+                error,
+            );
+        }
 
         let data = await response.json();
 
         if (!response.ok) {
             throw new TokenRefreshError(
-                "Error refreshing token",
-                JSON.stringify(data),
+                `Error refreshing token: ${JSON.stringify(data)}`,
             );
         }
 
         const { access_token, refresh_token, expires_in } = data;
 
-        // save to .env
-        updateEnvFile(
-            access_token,
-            refresh_token,
-            this.clientId,
-            this.clientSecret,
-        );
+        try {
+            updateEnvFile(
+                access_token,
+                refresh_token,
+                this.clientId,
+                this.clientSecret,
+            );
+        } catch (error) {
+            logTime(`Failed to persist tokens to .env: ${error.message}`, 3);
+        }
 
         this._oauthToken = access_token;
         this._refreshToken = refresh_token;
@@ -69,7 +80,12 @@ export class AuthClient {
         return expires_in;
     }
 
-    async getAuth(attempts = 0) {
+    async validateToken(attempts = 0) {
+        if (attempts >= 3) {
+            throw new TokenValidateError(
+                `Twitch token still invalid after maximum retries`,
+            );
+        }
         let response;
         try {
             response = await fetch("https://id.twitch.tv/oauth2/validate", {
@@ -79,26 +95,14 @@ export class AuthClient {
                     Authorization: "OAuth " + this._oauthToken,
                 },
             });
-        } catch (error) {
-            if (attempts > 3) {
-                throw new TokenValidateError(
-                    "Error during validation of Twitch token",
-                    error,
-                );
-            }
-
+        } catch {
             await new Promise((res) => setTimeout(res, 5000));
-            return await this.getAuth(attempts + 1);
+            return await this.validateToken(attempts + 1);
         }
 
-        if (!response.ok) {
-            if (attempts >= 1) {
-                throw new TokenValidateError(
-                    `Twitch token still invalid after retry. Status: ${response.status}`,
-                );
-            }
+        if (!response?.ok) {
             await this.refreshOAuthToken();
-            return await this.getAuth(attempts + 1);
+            return await this.validateToken(attempts + 1);
         }
 
         return true;

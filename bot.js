@@ -16,7 +16,7 @@ async function main() {
     const scheduler = new Scheduler();
 
     const authService = new AuthService();
-    await authService.getAuth();
+    await authService.validateToken();
 
     const chatService = new ChatService(authService);
 

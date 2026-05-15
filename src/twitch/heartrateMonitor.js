@@ -1,3 +1,5 @@
+import { logTime } from "../errors/log.js";
+
 export class HeartrateMonitor {
     constructor(client) {
         this.client = client;
@@ -31,9 +33,10 @@ export class HeartrateMonitor {
         if (!this.keepaliveTimeoutSeconds) return;
         this.heartbeat = setTimeout(
             () => {
-                console.log(
+                (logTime(
                     `(${this.client.sessionId}) Twitch WebSocket connection presumed dead, reconnecting...`,
-                );
+                ),
+                    2);
                 this.client.emit("hard_reconnect");
             },
             (this.keepaliveTimeoutSeconds + 5) * 1000,
@@ -47,6 +50,7 @@ export class HeartrateMonitor {
     stop() {
         this.stopListening();
         clearTimeout(this.heartbeat);
+        logTime(`(${this.client.sessionId}) Twitch Heartrate Monitor stopped`);
     }
 
     reset() {

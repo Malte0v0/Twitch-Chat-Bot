@@ -1,5 +1,5 @@
-import { HttpError, ParseError } from "../errors/errors";
-import { logTime } from "../errors/log";
+import { HttpError, ParseError } from "../errors/errors.js";
+import { logTime } from "../errors/log.js";
 
 export class GeonamesClient {
     constructor(API) {

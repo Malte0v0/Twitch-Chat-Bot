@@ -4,8 +4,8 @@ import { TwitchMessageHandler } from "./twitchMessageHandler.js";
 
 export class TwitchService {
     constructor(commandPrefix, commandController) {
-        this.defaultWsUrl = "wss://eventsub.wss.twitch.tv/ws";
-        // this.defaultWsUrl = "ws://127.0.0.1:8080/ws";
+        // this.defaultWsUrl = "wss://eventsub.wss.twitch.tv/ws";
+        this.defaultWsUrl = "ws://127.0.0.1:8080/ws";
 
         this.commandPrefix = commandPrefix;
         this.commandRegex = new RegExp(
@@ -20,8 +20,8 @@ export class TwitchService {
         this.commandController = commandController;
     }
 
-    start() {
-        this.twitchClient.start();
+    start(url = this.defaultWsUrl) {
+        this.twitchClient.start(url);
         this.startListening(this.twitchClient);
     }
 
@@ -72,7 +72,7 @@ export class TwitchService {
 
         if (oldClient.status === "reconnecting") {
             logTime(
-                `${oldClient.sessionId} Twitch Websocket waiting for new client to be welcomed before closing`,
+                `(${oldClient.sessionId}) Twitch Websocket waiting for new client to be welcomed before closing`,
             );
             this.twitchClient.once("welcome", () => {
                 oldClient.stop();
@@ -80,7 +80,7 @@ export class TwitchService {
             this.twitchClient.start(url);
         } else {
             oldClient.once("close", () => {
-                this.twitchClient.start();
+                this.twitchClient.start(url);
             });
             oldClient.stop();
         }

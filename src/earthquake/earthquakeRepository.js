@@ -1,5 +1,4 @@
-import { DatabaseError } from "../errors/errors";
-import { logTime } from "../errors/log";
+import { DatabaseError } from "../errors/errors.js";
 
 export class EarthquakeRepository {
     constructor(database) {

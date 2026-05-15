@@ -22,6 +22,7 @@ export class BotError extends Error {
 
 export class DatabaseError extends BotError {}
 export class ParseError extends BotError {}
+export class FormattingError extends BotError {}
 export class WebSocketError extends BotError {}
 
 export class HttpError extends BotError {}

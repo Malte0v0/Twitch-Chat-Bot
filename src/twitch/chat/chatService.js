@@ -1,13 +1,14 @@
 import { sleep } from "../../utils/timeUtils.js";
 import { formatMessage } from "./messageFormatter.js";
-import { chatClient } from "./chatClient.js";
+import { ChatClient } from "./chatClient.js";
+import { logTime } from "../../errors/log.js";
 
 export class ChatService {
     constructor(authService) {
         this._botUserId = process.env.BOT_USER_ID;
         this._chatUserId = process.env.CHAT_USER_ID;
 
-        this.chatClient = new chatClient(authService, this._botUserId);
+        this.chatClient = new ChatClient(authService, this._botUserId);
 
         this.lastMessage = undefined;
         this.messageQueue = [];
@@ -33,18 +34,16 @@ export class ChatService {
             });
         }
 
-        this.processQueue();
+        await this.processQueue();
     }
 
     sendMessage(message) {
-        this.sendChatMessage(message).catch((error) => console.warn(error));
+        this.sendChatMessage(message).catch((error) => logTime(error));
     }
 
     sendFormattedMessage(userName, message) {
         const messageFormatted = `@${userName}, ${message}`;
-        this.sendChatMessage(messageFormatted).catch((error) =>
-            console.warn(error),
-        );
+        this.sendChatMessage(messageFormatted).catch((error) => logTime(error));
     }
 
     async processQueue() {
@@ -54,18 +53,9 @@ export class ChatService {
         while (this.messageQueue.length > 0) {
             const { message, chatUserId } = this.messageQueue.shift();
 
-            const success = await this.chatClient.sendMessage(
-                message,
-                chatUserId,
-            );
-            if (!success) {
-                console.warn("Requeuing failed message:", message);
-                this.messageQueue.unshift({ message, chatUserId });
-                await sleep(2000);
-            } else {
-                this.lastMessage = message;
-                await sleep(this.rateLimitDelay);
-            }
+            await this.chatClient.sendMessage(message, chatUserId);
+            this.lastMessage = message;
+            await sleep(this.rateLimitDelay);
         }
 
         this.isSending = false;

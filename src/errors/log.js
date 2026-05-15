@@ -7,7 +7,10 @@ const LEVEL = {
 export function logTime(message, level = null) {
     if (!level) level = LEVEL.log;
 
-    const currentDate = new Date().toString();
+    const currentDate = new Date().toLocaleString("sv-SE", {
+        hour12: false,
+        timeZoneName: "shortOffset",
+    });
 
     const logMessage = `${currentDate} | ${message}`;
 

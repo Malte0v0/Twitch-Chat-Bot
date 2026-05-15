@@ -1,12 +1,12 @@
 import { ChatError } from "../../errors/errors.js";
 
-export class chatClient {
+export class ChatClient {
     constructor(authService, botUserId) {
         this.authService = authService;
         this.botUserId = botUserId;
     }
 
-    async sendMessage(message, chatUserId, attempts) {
+    async sendMessage(message, chatUserId, attempts = 0) {
         let response;
         try {
             response = await fetch(
@@ -25,27 +25,32 @@ export class chatClient {
                     }),
                 },
             );
-        } catch (error) {
-            throw new ChatError("Fetch failed", error);
-        }
 
-        const data = await response.json();
+            const data = await response.json();
 
-        if (response.status === 401 || response.status === 403) {
-            await this.authService.refreshOAuthToken();
-            if (attempts > 1) {
+            if (response.status === 401 || response.status === 403) {
+                await this.authService.refreshOAuthToken();
+                if (attempts > 1) {
+                    throw new ChatError(
+                        `Failed to send Twitch chat message even after retrying. Status: ${JSON.stringify(data)}`,
+                        data,
+                    );
+                }
+                return await this.sendMessage(
+                    message,
+                    chatUserId,
+                    attempts + 1,
+                );
+            } else if (!response.ok) {
                 throw new ChatError(
-                    `Failed to send Twitch chat message even after retrying. Status: ${JSON.stringify(data)}`,
-                    data,
+                    `Failed to send Twitch chat message Status: ${JSON.stringify(data)}`,
                 );
             }
-            await this.sendMessage(message, chatUserId, attempts + 1);
-        } else if (!response.ok) {
-            throw new ChatError(
-                `Failed to send Twitch chat message Status: ${JSON.stringify(data)}`,
-            );
-        }
 
-        return data;
+            return data;
+        } catch (error) {
+            if (error instanceof ChatError) throw error;
+            throw new ChatError("Fetch failed", error);
+        }
     }
 }

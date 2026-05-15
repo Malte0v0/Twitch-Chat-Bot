@@ -1,8 +1,8 @@
 import fs from "fs";
+import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-import { fileURLToPath } from "url";
 
 export function updateEnvFile(
     newOAuthToken,
@@ -12,7 +12,15 @@ export function updateEnvFile(
 ) {
     const envPath = resolve(__dirname, "../../../.env");
     let env = {};
-    const lines = fs.readFileSync(envPath, "utf-8").split("\n");
+    let lines;
+    try {
+        lines = fs.readFileSync(envPath, "utf-8").split("\n");
+    } catch (error) {
+        throw new Error(
+            `Failed to read .env file at ${envPath}: ${error.message}`,
+            { cause: error },
+        );
+    }
     lines.forEach((line) => {
         const [key, ...rest] = line.split("=");
         if (key) {

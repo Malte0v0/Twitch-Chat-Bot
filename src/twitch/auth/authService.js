@@ -25,7 +25,7 @@ export class AuthService {
         return await this.authClient.refreshOAuthToken();
     }
 
-    async getAuth() {
-        return await this.authClient.getAuth();
+    async validateToken() {
+        return await this.authClient.validateToken();
     }
 }

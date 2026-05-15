@@ -1,4 +1,5 @@
-import { EventSubError } from "../errors/errors";
+import { EventSubError } from "../errors/errors.js";
+import { logTime } from "../errors/log.js";
 
 export class EventSubClient {
     constructor() {
@@ -13,7 +14,7 @@ export class EventSubClient {
 
         let response;
         try {
-            console.log(`${sessionId} Registering Twitch eventsub`);
+            logTime(`(${sessionId}) Registering Twitch eventsub`);
             response = await fetch(
                 "https://api.twitch.tv/helix/eventsub/subscriptions",
                 {
