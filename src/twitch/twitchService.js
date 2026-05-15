@@ -71,6 +71,9 @@ export class TwitchService {
         oldClient.stopHeartrateMonitor();
 
         if (oldClient.status === "reconnecting") {
+            logTime(
+                `${oldClient.sessionId} Twitch Websocket waiting for new client to be welcomed before closing`,
+            );
             this.twitchClient.once("welcome", () => {
                 oldClient.stop();
             });

@@ -1,3 +1,5 @@
+import { ParseError } from "../errors/errors.js";
+
 export class EarthquakeParser {
     parseData(quakeRawJSON) {
         try {
@@ -21,8 +23,10 @@ export class EarthquakeParser {
 
             return quakeObject;
         } catch (error) {
-            console.log(quakeRawJSON);
-            console.warn(error);
+            throw new ParseError(
+                `Could not parse earthquake data: ${quakeRawJSON}`,
+                error,
+            );
         }
     }
 }

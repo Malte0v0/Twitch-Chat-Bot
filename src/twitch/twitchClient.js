@@ -3,7 +3,7 @@ import { EventEmitter } from "events";
 import { WebSocket } from "ws";
 import { EventSubClient } from "./eventSubClient.js";
 import { logTime } from "../errors/log.js";
-import { EventSubError, ParseError, WebSocketError } from "../errors/errors.js";
+import { ParseError, WebSocketError } from "../errors/errors.js";
 
 export class TwitchClient extends EventEmitter {
     constructor(url) {
@@ -94,13 +94,7 @@ export class TwitchClient extends EventEmitter {
                     this._status = session.status;
                     if (this._status != "reconnecting") {
                         this.registerEventSub(session.id).catch((error) => {
-                            this.emit(
-                                "error",
-                                new EventSubError(
-                                    `${this._sessionId} Failed to register Twitch EventSub`,
-                                    error,
-                                ),
-                            );
+                            this.emit("error", error);
                         });
                     }
                     this.emit("welcome", session);

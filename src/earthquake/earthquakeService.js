@@ -1,3 +1,5 @@
+import { BotError, DatabaseError } from "../errors/errors.js";
+import { logTime } from "../errors/log.js";
 import { EarthquakeClient } from "./earthquakeClient.js";
 import { EarthquakeParser } from "./earthquakeParser.js";
 import { EarthquakeRepository } from "./earthquakeRepository.js";
@@ -24,32 +26,53 @@ export class EarthquakeService {
     start() {
         this.earthquakeClient.on("quake", async (quakeRawJSON) => {
             try {
-                this.onQuake(quakeRawJSON);
+                await this.onQuake(quakeRawJSON);
             } catch (error) {
-                console.error("Parse or handle error:", error);
-                console.error("Raw message:", quakeRawJSON);
+                logTime(error, 3);
+                logTime(
+                    `Raw earthquake message: ${JSON.stringify(quakeRawJSON)}`,
+                );
             }
+        });
+
+        this.earthquakeClient.on("error", (error) => {
+            logTime(`Earthquake client error: (${error})`, 3);
+        });
+
+        this.earthquakeClient.on("close", (code, reason) => {
+            logTime(
+                `Earthquake client closed (${code}, ${reason}), awaiting reconnect...`,
+                2,
+            );
         });
 
         this.earthquakeClient.connect();
     }
 
-    onQuake(quakeRawJSON) {
+    async onQuake(quakeRawJSON) {
         const quakeObject = this.earthquakeParser.parseData(quakeRawJSON);
-        if (!quakeObject) return;
 
-        this.earthquakeRepository.insert(quakeRawJSON, quakeObject);
+        const inserted = this.earthquakeRepository.insert(
+            quakeRawJSON,
+            quakeObject,
+        );
+        if (inserted === null) {
+            logTime(
+                `Earthquake with UNID (${quakeObject.unId}) already exists in database`,
+                2,
+            );
+        }
 
         if (this.earthquakeRepository.existsInCache(quakeObject.unId)) {
             return;
         }
 
-        if (this.shouldSend(quakeObject)) {
-            this.sendWarning(quakeObject).catch((error) => console.log(error));
+        if (await this.shouldSend(quakeObject)) {
+            await this.sendWarning(quakeObject);
         }
     }
 
-    shouldSend(quakeObject) {
+    async shouldSend(quakeObject) {
         // Too long ago
         if (Date.now() - Date.parse(quakeObject.time) > this.maxDelayMs)
             return false; // 1 hour ago
@@ -69,8 +92,10 @@ export class EarthquakeService {
 
         // Close to population
         const distKm =
-            this.geonamesClient.getDistance(quakeObject.lat, quakeObject.lon) ||
-            300;
+            (await this.geonamesClient.getDistance(
+                quakeObject.lat,
+                quakeObject.lon,
+            )) || 300;
         const scale = Math.exp((quakeObject.mag - this.minMag) / 1.8);
         const scaledMaxDistKm = scale * this.maxDistKm;
 
@@ -82,8 +107,23 @@ export class EarthquakeService {
     }
 
     async sendWarning(quakeObject) {
-        await this.chatService.sendChatMessage(
-            `Alarm ALERT ${quakeObject.mag.toFixed(1)} ${quakeObject.magType} earthquake near ${quakeObject.region}`,
-        );
+        try {
+            await this.chatService.sendChatMessage(
+                `Alarm ALERT ${quakeObject.mag.toFixed(1)} ${quakeObject.magType} earthquake near ${quakeObject.region}`,
+            );
+            this.earthquakeRepository.setNotified(quakeObject.unId);
+        } catch (error) {
+            if (error instanceof DatabaseError) {
+                logTime(
+                    `Earthquake warning sent but failed to mark as notified in database (${quakeObject.unId}): ${error.cause}`,
+                    3,
+                );
+            } else {
+                throw new BotError(
+                    `Failed to send warning for earthquake with UNID (${quakeObject.unId})`,
+                    error,
+                );
+            }
+        }
     }
 }
