@@ -54,17 +54,6 @@ export class TwitchClient extends EventEmitter {
         }
     }
 
-    reconnect() {
-        if (this.ws) {
-            this.ws.once("close", () => {
-                this.start();
-            });
-            this.stop();
-        } else {
-            this.start();
-        }
-    }
-
     async registerEventSub(sessionId) {
         await this.eventSubClient.registerEventSubListeners(sessionId);
         logTime(`${sessionId} Subscribed to Twitch eventsub`);

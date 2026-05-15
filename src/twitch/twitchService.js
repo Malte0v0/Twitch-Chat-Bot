@@ -1,3 +1,4 @@
+import { logTime } from "../errors/log.js";
 import { TwitchClient } from "./twitchClient.js";
 import { TwitchMessageHandler } from "./twitchMessageHandler.js";
 
@@ -21,43 +22,49 @@ export class TwitchService {
 
     start() {
         this.twitchClient.start();
-        this.startListening();
+        this.startListening(this.twitchClient);
     }
 
     stop() {
         this.twitchClient.stop();
-        this.stopListening();
+        this.stopListening(this.twitchClient);
     }
 
-    startListening() {
+    startListening(twitchClient) {
         this._onNotification = (data) => {
             this.twitchMessageHandler.handleMessage(data);
         };
-
         this._onReconnect = (session) => {
             this.reconnect(session.reconnect_url, session.status);
         };
-
+        this._onHardReconnect = () => {
+            this.reconnect();
+        };
         this._onCommand = (command, messageText, data) => {
             this.commandController.handleCommand(command, messageText, data);
         };
+        this._onError = (error) => {
+            logTime(error, 3);
+            // TEMP TODO error handling TwitchService
+        };
 
-        this.twitchClient.on("notification", this._onNotification);
-
-        this.twitchClient.on("reconnect", this._onReconnect);
-
+        twitchClient.on("notification", this._onNotification);
+        twitchClient.on("reconnect", this._onReconnect);
+        twitchClient.on("hard_reconnect", this._onHardReconnect);
+        twitchClient.on("error", this._onError);
         this.twitchMessageHandler.on("command", this._onCommand);
     }
 
-    stopListening() {
-        this.twitchClient.off("notification", this._onNotification);
-        this.twitchClient.off("reconnect", this._onReconnect);
+    stopListening(twitchClient) {
+        twitchClient.off("notification", this._onNotification);
+        twitchClient.off("reconnect", this._onReconnect);
+        twitchClient.off("hard_reconnect", this._onHardReconnect);
+        twitchClient.off("error", this._onError);
         this.twitchMessageHandler.off("command", this._onCommand);
     }
 
-    reconnect(url, reason = null) {
-        if (reason)
-            console.log(`Twitch WebSocket reconnecting due to: ${reason}`);
+    reconnect(url = this.defaultWsUrl, reason = null) {
+        if (reason) logTime(`Twitch WebSocket reconnecting due to: ${reason}`);
 
         const oldClient = this.twitchClient;
         this.twitchClient = new TwitchClient(url);
@@ -67,18 +74,15 @@ export class TwitchService {
             this.twitchClient.once("welcome", () => {
                 oldClient.stop();
             });
+            this.twitchClient.start(url);
         } else {
+            oldClient.once("close", () => {
+                this.twitchClient.start();
+            });
             oldClient.stop();
         }
 
-        this.twitchClient.start(url);
-        this.rewireListeners(oldClient);
-    }
-
-    rewireListeners(oldClient) {
-        oldClient.off("message", this._onNotification);
-        oldClient.off("reconnect", this._onReconnect);
-        this.twitchClient.on("message", this._onNotification);
-        this.twitchClient.on("reconnect", this._onReconnect);
+        this.stopListening(oldClient);
+        this.startListening(this.twitchClient);
     }
 }

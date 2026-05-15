@@ -34,7 +34,7 @@ export class HeartrateMonitor {
                 console.log(
                     `(${this.client.sessionId}) Twitch WebSocket connection presumed dead, reconnecting...`,
                 );
-                this.client.reconnect();
+                this.client.emit("hard_reconnect");
             },
             (this.keepaliveTimeoutSeconds + 5) * 1000,
         );
