@@ -18,26 +18,24 @@ export class MovieService {
 
     init() {
         this.movieClient.loadToCacheFromDatabase();
+        this.startInterval();
+    }
 
+    startInterval() {
         const now = new Date();
         const target = new Date();
         target.setUTCHours(20, 0, 0, 0);
 
-        // If 8pm UTC has already passed today, target tomorrow
         if (target <= now) target.setUTCDate(target.getUTCDate() + 1);
 
         const msUntil8pmUTC = target - now;
 
         setTimeout(() => {
             this.moviesCommand();
-            this.startInterval();
+            setInterval(() => {
+                this.moviesCommand();
+            }, TWELVE_HOURS_IN_MS);
         }, msUntil8pmUTC);
-    }
-
-    startInterval() {
-        setInterval(() => {
-            this.moviesCommand();
-        }, TWELVE_HOURS_IN_MS);
     }
 
     nominateCommand(userId, userName, messageText) {
