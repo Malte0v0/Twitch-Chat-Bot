@@ -1,3 +1,4 @@
+import { logTime } from "../../errors/log.js";
 import { event } from "../../utils/events.js";
 import { ReminderModel } from "./reminderModel.js";
 import { ReminderParser } from "./reminderParser.js";
@@ -26,8 +27,12 @@ export class ReminderService {
     }
 
     startListening() {
-        this._boundDeliverTime = this.deliverTimeReminder.bind(this);
-        this._boundDeliverUser = this.deliverUserReminder.bind(this);
+        this._boundDeliverTime = (reminder) => {
+            this.deliverTimeReminder(reminder).catch((error) => logTime(error));
+        };
+        this._boundDeliverUser = (data) => {
+            this.deliverUserReminder(data).catch((error) => logTime(error));
+        };
 
         event.on("job_due", this._boundDeliverTime);
         event.on("user_appeared", this._boundDeliverUser);
@@ -38,14 +43,20 @@ export class ReminderService {
         event.off("user_appeared", this._boundDeliverUser);
     }
 
-    deliverTimeReminder(reminder) {
+    async deliverTimeReminder(reminder) {
         if (!(reminder instanceof ReminderModel)) return;
 
-        reminder.deliver();
-        this.reminders.delete(reminder.rowId);
+        try {
+            await reminder.deliver();
+            this.reminders.delete(reminder.rowId);
+        } catch (error) {
+            logTime(
+                `Failed to deliver time reminder ${reminder.rowId}: ${error}`,
+            );
+        }
     }
 
-    deliverUserReminder(data) {
+    async deliverUserReminder(data) {
         const userId = data.payload.event.chatter_user_id;
 
         for (const [id, reminder] of this.reminders.entries()) {
@@ -53,8 +64,14 @@ export class ReminderService {
                 reminder.triggerTime === null &&
                 reminder.targetUserId == userId
             ) {
-                reminder.deliver();
-                this.reminders.delete(id);
+                try {
+                    await reminder.deliver();
+                    this.reminders.delete(id);
+                } catch (error) {
+                    logTime(
+                        `Failed to deliver user reminder ${reminder.rowId}: ${error}`,
+                    );
+                }
             }
         }
     }
@@ -84,7 +101,7 @@ export class ReminderService {
         );
 
         if (!this.userRepository.userExists(reminderDict.targetUserId)) {
-            this.chatService.sendFormattedMessage(
+            this.chatService.sendFormattedMessageAsync(
                 this.userRepository.getUserName(userId),
                 "This user has not been registered in the database",
             );
@@ -110,7 +127,7 @@ export class ReminderService {
 
         const reminder = this.reminders.get(rowId);
         if (!reminder) {
-            this.chatService.sendFormattedMessage(
+            this.chatService.sendFormattedMessageAsync(
                 userLogin,
                 `Reminder with ID ${rowId} doesn't exist`,
             );
@@ -119,7 +136,7 @@ export class ReminderService {
 
         reminder.delete();
         this.reminders.delete(rowId);
-        this.chatService.sendFormattedMessage(
+        this.chatService.sendFormattedMessageAsync(
             userLogin,
             `Reminder with ID ${rowId} has been unset`,
         );

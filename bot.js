@@ -36,4 +36,4 @@ async function main() {
     }, REFRESH_INTERVAL_MS);
 }
 
-main().catch(console.error);
+main().catch((error) => console.error(error));

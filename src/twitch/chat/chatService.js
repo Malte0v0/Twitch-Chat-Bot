@@ -41,9 +41,18 @@ export class ChatService {
         this.sendChatMessage(message).catch((error) => logTime(error));
     }
 
+    async sendMessageAsync(message) {
+        await this.sendChatMessage(message);
+    }
+
     sendFormattedMessage(userName, message) {
         const messageFormatted = `@${userName}, ${message}`;
         this.sendChatMessage(messageFormatted).catch((error) => logTime(error));
+    }
+
+    async sendFormattedMessageAsync(userName, message) {
+        const messageFormatted = `@${userName}, ${message}`;
+        await this.sendChatMessage(messageFormatted);
     }
 
     async processQueue() {

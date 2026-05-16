@@ -66,12 +66,12 @@ export class ReminderModel {
         if (result.changes !== 0) this.scheduler.removeJob(this);
     }
 
-    deliver() {
-        this.notifyDeliver();
+    async deliver() {
+        await this.notifyDeliver();
         this.reminderRepository.setDelivered(this.rowId);
     }
 
-    notifyDeliver() {
+    async notifyDeliver() {
         const targetUserName = this.userRepository.getUserName(
             this.targetUserId,
         );
@@ -89,6 +89,9 @@ export class ReminderModel {
         const prefix = `reminder from ${targetName} (${timeSinceSet} ago)`;
         const suffix = this.message ? `: ${this.message}` : "";
 
-        this.chatService.sendFormattedMessage(targetUserName, prefix + suffix);
+        await this.chatService.sendFormattedMessage(
+            targetUserName,
+            prefix + suffix,
+        );
     }
 }
