@@ -6,6 +6,8 @@ import { MovieRepository } from "./movieRepository.js";
 import { AlreadyNominatedError } from "../../errors/errors.js";
 import { UserHasntNominatedError } from "../../errors/errors.js";
 
+const TWELVE_HOURS_IN_MS = 12 * 60 * 60 * 1000;
+
 export class MovieService {
     constructor(database, chatService) {
         this.chatService = chatService;
@@ -16,6 +18,26 @@ export class MovieService {
 
     init() {
         this.movieClient.loadToCacheFromDatabase();
+
+        const now = new Date();
+        const target = new Date();
+        target.setUTCHours(20, 0, 0, 0);
+
+        // If 8pm UTC has already passed today, target tomorrow
+        if (target <= now) target.setUTCDate(target.getUTCDate() + 1);
+
+        const msUntil8pmUTC = target - now;
+
+        setTimeout(() => {
+            this.moviesCommand();
+            this.startInterval();
+        }, msUntil8pmUTC);
+    }
+
+    startInterval() {
+        setInterval(() => {
+            this.moviesCommand();
+        }, TWELVE_HOURS_IN_MS);
     }
 
     nominateCommand(userId, userName, messageText) {
