@@ -24,7 +24,7 @@ export class MovieService {
     startInterval() {
         const now = new Date();
         const target = new Date();
-        target.setUTCHours(20, 0, 0, 0);
+        target.setUTCHours(19, 0, 0, 0);
 
         if (target <= now) target.setUTCDate(target.getUTCDate() + 1);
 
