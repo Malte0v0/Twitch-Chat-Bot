@@ -13,12 +13,28 @@ export class UserRepository {
             )
             .run(userId, userLogin, userName);
 
-        if (!result) return null;
+        if (result.changes === 0) return null;
 
         return result;
     }
 
-    userExists(userId) {
+    updateUser(userId, userLogin, userName) {
+        const result = this.database
+            .prepare(
+                `
+            UPDATE users 
+            SET user_login = ?, user_name = ?
+            WHERE user_id = ?
+            `,
+            )
+            .run(userLogin, userName, userId);
+
+        if (result.changes === 0) return null;
+
+        return result;
+    }
+
+    getUserById(userId) {
         const user = this.database
             .prepare(
                 `

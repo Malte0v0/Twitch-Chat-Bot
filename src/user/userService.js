@@ -14,8 +14,16 @@ export class UserService {
     startListening() {
         this.onUserAppear = (data) => {
             const { userId, userLogin, userName } = UserParser.parse(data);
-            if (!this.userRepository.userExists(userId)) {
+
+            const user = this.userRepository.getUserById(userId);
+
+            if (!user) {
                 this.userRepository.insertUser(userId, userLogin, userName);
+            } else if (
+                user.user_login !== userLogin ||
+                user.user_name !== userName
+            ) {
+                this.userRepository.updateUser(userId, userLogin, userName);
             }
         };
 

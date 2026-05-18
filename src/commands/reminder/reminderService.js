@@ -100,7 +100,7 @@ export class ReminderService {
             messageText,
         );
 
-        if (!this.userRepository.userExists(reminderDict.targetUserId)) {
+        if (!this.userRepository.getUserById(reminderDict.targetUserId)) {
             this.chatService.sendFormattedMessageAsync(
                 this.userRepository.getUserName(userId),
                 "This user has not been registered in the database",
