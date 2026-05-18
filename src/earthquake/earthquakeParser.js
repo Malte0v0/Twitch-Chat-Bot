@@ -3,12 +3,6 @@ import { ParseError } from "../errors/errors.js";
 export class EarthquakeParser {
     parseData(quakeRawJSON) {
         try {
-            const action = quakeRawJSON.action;
-            if (!["create", "update"].includes(action)) {
-                console.log(quakeRawJSON);
-                return;
-            }
-
             const properties = quakeRawJSON.data.properties;
             const quakeObject = {
                 unId: quakeRawJSON.data.id,

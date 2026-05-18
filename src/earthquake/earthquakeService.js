@@ -47,9 +47,16 @@ export class EarthquakeService {
         });
 
         this.earthquakeClient.connect();
+        this.earthquakeRepository.populateCache();
     }
 
     async onQuake(quakeRawJSON) {
+        const action = quakeRawJSON.action;
+        if (!["create", "update"].includes(action)) {
+            console.log(quakeRawJSON);
+            return;
+        }
+
         const quakeObject = this.earthquakeParser.parseData(quakeRawJSON);
 
         const inserted = this.earthquakeRepository.insert(
@@ -61,6 +68,7 @@ export class EarthquakeService {
                 `Earthquake with UNID (${quakeObject.unId}) already exists in database`,
                 2,
             );
+            return;
         }
 
         if (this.earthquakeRepository.existsInCache(quakeObject.unId)) {

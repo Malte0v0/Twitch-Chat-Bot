@@ -44,6 +44,7 @@ export class EarthquakeRepository {
                     `Insert returned no rowid for UNID (${quakeObject.unId})`,
                 );
             }
+            return result.lastInsertRowid;
         } catch (error) {
             if (error.code === "SQLITE_CONSTRAINT_UNIQUE") {
                 return null;
@@ -65,6 +66,7 @@ export class EarthquakeRepository {
             `,
                 )
                 .run(unId);
+            this.notifiedUNIDCache.add(unId);
         } catch (error) {
             throw new DatabaseError(
                 `Failed to set notified for UNID (${unId}): ${error.message}`,
