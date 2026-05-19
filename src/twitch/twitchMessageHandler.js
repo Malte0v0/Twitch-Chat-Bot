@@ -1,6 +1,7 @@
 import { event } from "../utils/events.js";
 import { sanitizeInput } from "../utils/inputUtils.js";
 import { logTime } from "../errors/log.js";
+import { getHumanTimeFromDate } from "../utils/timeUtils.js";
 
 export class TwitchMessageHandler {
     #prefix;
@@ -19,9 +20,10 @@ export class TwitchMessageHandler {
 
         const raw  = sanitizeInput(message.text).trim();
         const time = new Date(data.metadata.message_timestamp);
+        const messageTime = getHumanTimeFromDate(time);
 
         console.log(
-          `MSG ${time} #${broadcaster_user_login} <${chatter_user_login}> ${raw}`,
+          `MSG ${messageTime} #${broadcaster_user_login} <${chatter_user_login}> ${raw}`,
         );
 
         event.emit("user_appeared", data);
