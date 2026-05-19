@@ -6,6 +6,7 @@ import { ChatService } from "./src/twitch/chat/chatService.js";
 import { CommandController } from "./src/commandController.js";
 import { EarthquakeService } from "./src/earthquake/earthquakeService.js";
 import "dotenv/config";
+import { TwitchMessageHandler } from "./src/twitch/twitchMessageHandler.js";
 
 const commandPrefix = "$";
 const REFRESH_INTERVAL_MS = 2 * 60 * 60 * 1000;
@@ -25,7 +26,12 @@ async function main() {
     database,
     scheduler,
   );
-  const twitchService = new TwitchService(commandPrefix, commandController);
+  const messageHandler = new TwitchMessageHandler(commandPrefix, (command, args, data) => {
+    commandController.handleCommand(command, args, data);
+  });
+  const twitchService = new TwitchService({
+    onNotification: (data) => messageHandler.handle(data),
+  });
   twitchService.start();
 
   const earthquakeService = new EarthquakeService(chatService, database);
