@@ -12,26 +12,26 @@ const commandPrefix = "$";
 const REFRESH_INTERVAL_MS = 2 * 60 * 60 * 1000;
 
 async function main() {
-    const database = new ChatDatabase();
-    const scheduler = new Scheduler();
-    const authService = new AuthService();
-    const chatService = new ChatService(authService);
-    const commands = new Commands(chatService, db, scheduler, commandPrefix);
+  const database = new ChatDatabase();
+  const scheduler = new Scheduler();
+  const authService = new AuthService();
+  const chatService = new ChatService(authService);
+  const commands = new Commands(chatService, db, scheduler, commandPrefix);
 
-    const earthquakeService = new EarthquakeService(chatService, db);
-    const nitterService = new NitterService(chatService);
+  const earthquakeService = new EarthquakeService(chatService, db);
+  const nitterService = new NitterService(chatService);
 
-    const twitchService = new TwitchService(
-        authService,
-        chatService,
-        nitterService,
-        commands,
-        commandPrefix,
-    );
+  const twitchService = new TwitchService(
+    authService,
+    chatService,
+    nitterService,
+    commands,
+    commandPrefix,
+  );
 
-    setInterval(() => {
-        authService.refreshOAuthToken().catch(console.error);
-    }, REFRESH_INTERVAL_MS);
+  setInterval(() => {
+    authService.refreshOAuthToken().catch(console.error);
+  }, REFRESH_INTERVAL_MS);
 }
 
 main().catch(console.error);
