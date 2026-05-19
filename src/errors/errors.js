@@ -1,23 +1,23 @@
 export class AlreadyNominatedError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "AlreadyNominated";
-    }
+  constructor(message) {
+    super(message);
+    this.name = "AlreadyNominated";
+  }
 }
 
 export class UserHasntNominatedError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "UserHasntNominatedError";
-    }
+  constructor(message) {
+    super(message);
+    this.name = "UserHasntNominatedError";
+  }
 }
 
 export class BotError extends Error {
-    constructor(message, cause) {
-        super(message);
-        this.name = this.constructor.name;
-        this.cause = cause;
-    }
+  constructor(message, cause) {
+    super(message);
+    this.name = this.constructor.name;
+    this.cause = cause;
+  }
 }
 
 export class DatabaseError extends BotError {}

@@ -1,26 +1,26 @@
 import { ParseError } from "../errors/errors.js";
 
 export class EarthquakeParser {
-    parseData(quakeRawJSON) {
-        try {
-            const properties = quakeRawJSON.data.properties;
-            const quakeObject = {
-                unId: quakeRawJSON.data.id,
-                time: properties.time,
-                lat: Number(properties.lat),
-                lon: Number(properties.lon),
-                depthKm: Number(properties.depth),
-                mag: Number(properties.mag),
-                magType: properties.magtype,
-                region: properties.flynn_region,
-            };
+  parseData(quakeRawJSON) {
+    try {
+      const properties = quakeRawJSON.data.properties;
+      const quakeObject = {
+        unId: quakeRawJSON.data.id,
+        time: properties.time,
+        lat: Number(properties.lat),
+        lon: Number(properties.lon),
+        depthKm: Number(properties.depth),
+        mag: Number(properties.mag),
+        magType: properties.magtype,
+        region: properties.flynn_region,
+      };
 
-            return quakeObject;
-        } catch (error) {
-            throw new ParseError(
-                `Could not parse earthquake data: ${quakeRawJSON}`,
-                error,
-            );
-        }
+      return quakeObject;
+    } catch (error) {
+      throw new ParseError(
+        `Could not parse earthquake data: ${quakeRawJSON}`,
+        error,
+      );
     }
+  }
 }

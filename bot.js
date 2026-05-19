@@ -11,29 +11,29 @@ const commandPrefix = "$";
 const REFRESH_INTERVAL_MS = 2 * 60 * 60 * 1000;
 
 async function main() {
-    const database = new ChatDatabase("database.db");
-    database.initialize();
-    const scheduler = new Scheduler();
+  const database = new ChatDatabase("database.db");
+  database.initialize();
+  const scheduler = new Scheduler();
 
-    const authService = new AuthService();
-    await authService.validateToken();
+  const authService = new AuthService();
+  await authService.validateToken();
 
-    const chatService = new ChatService(authService);
+  const chatService = new ChatService(authService);
 
-    const commandController = new CommandController(
-        chatService,
-        database,
-        scheduler,
-    );
-    const twitchService = new TwitchService(commandPrefix, commandController);
-    twitchService.start();
+  const commandController = new CommandController(
+    chatService,
+    database,
+    scheduler,
+  );
+  const twitchService = new TwitchService(commandPrefix, commandController);
+  twitchService.start();
 
-    const earthquakeService = new EarthquakeService(chatService, database);
-    earthquakeService.start();
+  const earthquakeService = new EarthquakeService(chatService, database);
+  earthquakeService.start();
 
-    setInterval(() => {
-        authService.refreshOAuthToken().catch(console.error);
-    }, REFRESH_INTERVAL_MS);
+  setInterval(() => {
+    authService.refreshOAuthToken().catch(console.error);
+  }, REFRESH_INTERVAL_MS);
 }
 
 main().catch((error) => console.error(error));
