@@ -35,6 +35,7 @@ export class TwitchClient extends EventEmitter {
     }
 
     stop() {
+        this._stopped = true;
         this.stopHeartrateMonitor();
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.close();
@@ -129,7 +130,7 @@ export class TwitchClient extends EventEmitter {
             );
             this.emit("close", code, reason);
 
-            if (code >= 4000) {
+            if (code >= 4000 && !this._stopped) {
                 this.emit("hard_reconnect");
             }
         });
