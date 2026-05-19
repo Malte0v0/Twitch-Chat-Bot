@@ -59,14 +59,16 @@ export class ChatService {
         if (this.isSending) return;
         this.isSending = true;
 
-        while (this.messageQueue.length > 0) {
-            const { message, chatUserId } = this.messageQueue.shift();
+        try {
+            while (this.messageQueue.length > 0) {
+                const { message, chatUserId } = this.messageQueue.shift();
 
-            await this.chatClient.sendMessage(message, chatUserId);
-            this.lastMessage = message;
-            await sleep(this.rateLimitDelay);
+                await this.chatClient.sendMessage(message, chatUserId);
+                this.lastMessage = message;
+                await sleep(this.rateLimitDelay);
+            }
+        } finally {
+            this.isSending = false;
         }
-
-        this.isSending = false;
     }
 }

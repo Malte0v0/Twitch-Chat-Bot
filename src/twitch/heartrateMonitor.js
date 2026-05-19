@@ -33,10 +33,10 @@ export class HeartrateMonitor {
         if (!this.keepaliveTimeoutSeconds) return;
         this.heartbeat = setTimeout(
             () => {
-                (logTime(
+                logTime(
                     `(${this.client.sessionId}) Twitch WebSocket connection presumed dead, reconnecting...`,
-                ),
-                    2);
+                    2,
+                );
                 this.client.emit("hard_reconnect");
             },
             (this.keepaliveTimeoutSeconds + 5) * 1000,

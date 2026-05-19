@@ -70,6 +70,9 @@ export class TwitchService {
         this.twitchClient = new TwitchClient(url, oldClient.status);
         oldClient.stopHeartrateMonitor();
 
+        this.stopListening(oldClient);
+        this.startListening(this.twitchClient);
+
         if (oldClient.status === "reconnecting") {
             logTime(
                 `(${oldClient.sessionId}) Twitch Websocket waiting for new client to be welcomed before closing`,
@@ -84,8 +87,5 @@ export class TwitchService {
             });
             oldClient.stop();
         }
-
-        this.stopListening(oldClient);
-        this.startListening(this.twitchClient);
     }
 }
