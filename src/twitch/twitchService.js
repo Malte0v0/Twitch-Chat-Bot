@@ -1,8 +1,8 @@
 import { logTime } from "../errors/log.js";
 import { TwitchConnection } from "./twitchConnection.js";
 
-const TWITCH_WS_URL = "wss://eventsub.wss.twitch.tv/ws";
-// const TWITCH_WS_URL = "ws://127.0.0.1:8080/ws";
+// const TWITCH_WS_URL = "wss://eventsub.wss.twitch.tv/ws";
+const TWITCH_WS_URL = "ws://127.0.0.1:8080/ws";
 
 export class TwitchService {
     #connection = null;
@@ -41,8 +41,8 @@ export class TwitchService {
         conn.on("dead", () => {
             if (!this.#running) return;
             logTime("Hard reconnect, starting fresh connection", 2);
-            conn.close();
             this.#connect();
+            conn.close();
         });
  
         conn.on("closed", () => {

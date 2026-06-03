@@ -36,6 +36,7 @@ export class TwitchConnection extends EventEmitter {
   }
 
   close() {
+    if (this.#closing) return;
     this.#closing = true;
     this.#clearKeepalive();
 
@@ -121,7 +122,7 @@ export class TwitchConnection extends EventEmitter {
       logTime(`(${this.#sessionId}) Twitch WebSocket presumed dead, reconnecting...`);
       this.#clearKeepalive();
       this.emit("dead");
-    }, this.#keepaliveMs);
+    }, this.#keepaliveMs - 5000);
   }
 
   #clearKeepalive() {
