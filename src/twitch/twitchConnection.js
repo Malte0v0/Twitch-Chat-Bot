@@ -122,7 +122,7 @@ export class TwitchConnection extends EventEmitter {
       logTime(`(${this.#sessionId}) Twitch WebSocket presumed dead, reconnecting...`);
       this.#clearKeepalive();
       this.emit("dead");
-    }, this.#keepaliveMs - 5000);
+    }, this.#keepaliveMs);
   }
 
   #clearKeepalive() {
