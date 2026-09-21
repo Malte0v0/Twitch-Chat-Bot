@@ -1,8 +1,5 @@
 import fs from "fs";
-import { fileURLToPath } from "url";
-import { dirname, resolve } from "path";
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { resolve } from "path";
 
 export function updateEnvFile(
   newOAuthToken,
@@ -10,7 +7,7 @@ export function updateEnvFile(
   clientId,
   clientSecret,
 ) {
-  const envPath = resolve(__dirname, "../../../.env");
+  const envPath = resolve(process.cwd(), ".env");
   let env = {};
   let lines;
   try {

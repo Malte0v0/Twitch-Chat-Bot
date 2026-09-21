@@ -1,13 +1,8 @@
 import { ReminderService } from "./commands/reminder/reminderService.js";
-import { WeatherService } from "./commands/weather/weatherService.js";
-import { LocationService } from "./commands/location/locationService.js";
-import { NewsService } from "./commands/news/newsService.js";
 import { AwayService } from "./commands/away/awayService.js";
-import { QuotesService } from "./commands/quote/quotesService.js";
-import { TimeService } from "./commands/time/timeService.js";
 import { AWAY_STATUS } from "./commands/away/awayStatus.js";
 import { UserService } from "./user/userService.js";
-import { MovieService } from "./commands/movie/movieService.js";
+import { GtaCounterService } from "./gta/GtaCounterService.js";
 
 export class CommandController {
   constructor(chatService, database, scheduler) {
@@ -26,16 +21,12 @@ export class CommandController {
       scheduler,
     );
     this.reminderService.startListening();
-    this.weatherService = new WeatherService(chatService, database);
-    this.locationService = new LocationService(chatService, database);
-    this.newsService = new NewsService(chatService);
+
     this.awayService = new AwayService(chatService, database);
     this.awayService.start();
-    this.quotesService = new QuotesService(chatService);
-    this.timeService = new TimeService(chatService);
 
-    this.movieSerivce = new MovieService(database, chatService);
-    this.movieSerivce.init();
+    this.gtaCounter = new GtaCounterService(this.chatService);
+    this.gtaCounter.start();
 
     this.execute = this.debounce(this.executeCommand, 500);
   }
@@ -58,24 +49,6 @@ export class CommandController {
         break;
       case "printreminders":
         this.reminderService.print();
-        break;
-      case "weather":
-      case "w":
-        await this.weatherService
-          .weatherCommand(messageText, userId, userName)
-          .catch((error) => {
-            console.warn("Weather command failed:", error);
-          });
-        break;
-      case "location":
-        await this.locationService.locationCommand(
-          messageText,
-          userId,
-          userName,
-        );
-        break;
-      case "news":
-        await this.newsService.newsCommand();
         break;
       case "afk":
         await this.awayService.setAway(
@@ -100,21 +73,6 @@ export class CommandController {
           userName,
           AWAY_STATUS.showering,
         );
-        break;
-      case "quote":
-        await this.quotesService.quoteCommand();
-        break;
-      case "time":
-        await this.timeService.timeCommand();
-        break;
-      case "nominate":
-        this.movieSerivce.nominateCommand(userId, userName, messageText);
-        break;
-      case "movies":
-        this.movieSerivce.moviesCommand();
-        break;
-      case "unsetmovie":
-        this.movieSerivce.unsetNominationCommand(userId, userName);
         break;
     }
   }

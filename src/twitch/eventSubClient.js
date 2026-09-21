@@ -2,16 +2,13 @@ import { EventSubError } from "../errors/errors.js";
 import { logTime } from "../errors/log.js";
 
 export class EventSubClient {
-  constructor() {
-    this.clientSecret = process.env.CLIENT_SECRET;
-    this.clientId = process.env.CLIENT_ID;
+  constructor(authService) {
+    this.authService = authService;
     this.botUserId = process.env.BOT_USER_ID;
     this.chatUserId = process.env.CHAT_USER_ID;
   }
 
-  async registerEventSubListeners(sessionId) {
-    const oauthToken = process.env.OAUTH_TOKEN;
-
+  async registerEventSubListeners(sessionId, attempts = 0) {
     let response;
     try {
       logTime(`(${sessionId}) Registering Twitch eventsub`);
@@ -20,8 +17,8 @@ export class EventSubClient {
         {
           method: "POST",
           headers: {
-            Authorization: "Bearer " + oauthToken,
-            "Client-Id": this.clientId,
+            Authorization: "Bearer " + this.authService.oauthToken,
+            "Client-Id": this.authService.clientId,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -43,6 +40,11 @@ export class EventSubClient {
     }
 
     const data = await response.json();
+
+    if (response.status === 401 && attempts < 1) {
+      await this.authService.refreshOAuthToken();
+      return await this.registerEventSubListeners(sessionId, attempts + 1);
+    }
 
     if (response.status !== 202) {
       throw new EventSubError(

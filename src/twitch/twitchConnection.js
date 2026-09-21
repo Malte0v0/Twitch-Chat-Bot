@@ -7,32 +7,45 @@ const TWITCH_WS_URL = "wss://eventsub.wss.twitch.tv/ws";
 const KEEPALIVE_GRACE_SECONDS = 5;
 
 export class TwitchConnection extends EventEmitter {
-  #ws             = null;
-  #sessionId      = null;
+  #ws = null;
+  #sessionId = null;
   #keepaliveTimer = null;
-  #keepaliveMs    = null;
-  #closing        = false;
+  #keepaliveMs = null;
+  #closing = false;
   #isReconnect;
-  #eventSubClient = new EventSubClient();
+  #eventSubClient;
   #url;
 
-  constructor(url = TWITCH_WS_URL, isReconnect) {
+  constructor(authService, url = TWITCH_WS_URL, isReconnect) {
     super();
-    this.#url         = url;
+    this.#url = url;
     this.#isReconnect = isReconnect;
+    this.#eventSubClient = new EventSubClient(authService);
   }
 
-  get sessionId() { return this.#sessionId; }
-  get url()       { return this.#url; }
+  get sessionId() {
+    return this.#sessionId;
+  }
+  get url() {
+    return this.#url;
+  }
 
   open() {
     logTime("Connecting to Twitch...");
     this.#ws = new WebSocket(this.#url);
 
-    this.#ws.on("open",     ()              => { logTime(`Connected: ${this.#url}`) });
-    this.#ws.on("message",  (raw)           => { this.#onMessage(raw) })
-    this.#ws.on("error",    (error)         => { this.#onError(error) })
-    this.#ws.on("close",    (code, buffer)  => { this.#onClose(code, buffer) })
+    this.#ws.on("open", () => {
+      logTime(`Connected: ${this.#url}`);
+    });
+    this.#ws.on("message", (raw) => {
+      this.#onMessage(raw);
+    });
+    this.#ws.on("error", (error) => {
+      this.#onError(error);
+    });
+    this.#ws.on("close", (code, buffer) => {
+      this.#onClose(code, buffer);
+    });
   }
 
   close() {
@@ -40,13 +53,12 @@ export class TwitchConnection extends EventEmitter {
     this.#closing = true;
     this.#clearKeepalive();
 
-    if(this.#ws?.readyState === WebSocket.OPEN) {
+    if (this.#ws?.readyState === WebSocket.OPEN) {
       this.#ws.close();
     } else {
       this.emit("closed", null, null);
     }
   }
-
 
   // WebSocket handlers
 
@@ -61,24 +73,31 @@ export class TwitchConnection extends EventEmitter {
 
     this.#resetKeepalive();
 
-    const type    = data?.metadata?.message_type;
+    const type = data?.metadata?.message_type;
     const session = data?.payload?.session;
 
     switch (type) {
       case "session_welcome":
         this.#sessionId = session.id;
-        this.#keepaliveMs = (session.keepalive_timeout_seconds + KEEPALIVE_GRACE_SECONDS) * 1000;
+        this.#keepaliveMs =
+          (session.keepalive_timeout_seconds + KEEPALIVE_GRACE_SECONDS) * 1000;
         this.#resetKeepalive();
-        logTime(`(${this.#sessionId}) Twitch WebSocket received welcome message`)
-        if (!this.#isReconnect) this.#registerEventSub(session.id);
+        logTime(
+          `(${this.#sessionId}) Twitch WebSocket received welcome message`,
+        );
         this.emit("welcome", session);
+        if (this.#isReconnect) {
+          this.emit("ready");
+        } else {
+          this.#registerEventSub(session.id);
+        }
         break;
-      
+
       case "session_keepalive":
         break;
 
       case "session_reconnect":
-        logTime(`(${this.#sessionId}) Twitch requested reconnect`)
+        logTime(`(${this.#sessionId}) Twitch requested reconnect`);
         this.emit("reconnect", session.reconnect_url);
         break;
 
@@ -103,14 +122,18 @@ export class TwitchConnection extends EventEmitter {
     const reason = buffer?.toString() || "";
 
     if (this.#closing) {
-      logTime(`(${this.#sessionId}) Twitch WebSocket closed with code (${code})`);
+      logTime(
+        `(${this.#sessionId}) Twitch WebSocket closed with code (${code})`,
+      );
     } else {
-      logTime(`(${this.#sessionId}) Twitch WebSocket connection was lost, code (${code}), reason (${reason})`, 2);
+      logTime(
+        `(${this.#sessionId}) Twitch WebSocket connection was lost, code (${code}), reason (${reason})`,
+        2,
+      );
     }
 
     this.emit("closed", code, reason);
   }
-
 
   // Keepalive
 
@@ -119,7 +142,9 @@ export class TwitchConnection extends EventEmitter {
 
     this.#clearKeepalive();
     this.#keepaliveTimer = setTimeout(() => {
-      logTime(`(${this.#sessionId}) Twitch WebSocket presumed dead, reconnecting...`);
+      logTime(
+        `(${this.#sessionId}) Twitch WebSocket presumed dead, reconnecting...`,
+      );
       this.#clearKeepalive();
       this.emit("dead");
     }, this.#keepaliveMs);
@@ -130,16 +155,20 @@ export class TwitchConnection extends EventEmitter {
     this.#keepaliveTimer = null;
   }
 
-
   // EventSub
 
   async #registerEventSub(sessionId) {
     try {
       await this.#eventSubClient.registerEventSubListeners(sessionId);
       logTime(`(${this.sessionId}) Twitch connection registered EventSub`);
+      this.emit("ready");
     } catch (error) {
-      logTime(`(${this.sessionId}) Twitch connection failed to register EventSub: ${error}`, 2);
+      logTime(
+        `(${this.sessionId}) Twitch connection failed to register EventSub: ${error}`,
+        2,
+      );
       this.emit("error", error);
+      this.close();
     }
   }
 }
