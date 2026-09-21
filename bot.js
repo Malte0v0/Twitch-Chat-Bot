@@ -29,6 +29,9 @@ import { MovieRepository } from "./src/commands/movie/adapters/MovieRepository.j
 import { OmdbMovieAdapter } from "./src/commands/movie/adapters/OmdbMovieAdapter.js";
 import { NominationRepository } from "./src/commands/movie/adapters/NominationRepository.js";
 import { createMoviePlugin } from "./src/commands/movie/MoviePlugin.js";
+import { TwelveDataAdapter } from "./src/commands/stock/adapters/TwelveDataAdapter.js";
+import { StockService } from "./src/commands/stock/StockService.js";
+import { createStockPlugin } from "./src/commands/stock/StockPlugin.js";
 
 const commandPrefix = "$";
 const REFRESH_INTERVAL_MS = 2 * 60 * 60 * 1000;
@@ -77,6 +80,11 @@ async function main() {
   const locationService = new LocationService(locationRepository);
   const locationPlugin = createLocationPlugin(locationService);
 
+  // STOCKS
+  const twelveDataAdapter = new TwelveDataAdapter(process.env.STOCK_API);
+  const stockService = new StockService(twelveDataAdapter);
+  const stockPlugin = createStockPlugin(stockService);
+
   // MOVIE
   const cachedMovieAdapter = new CachedMovieAdapter(
     new OmdbMovieAdapter(
@@ -119,6 +127,7 @@ async function main() {
   commandKernel.register(weatherPlugin);
   commandKernel.register(locationPlugin);
   commandKernel.register(moviePlugin);
+  commandKernel.register(stockPlugin);
 
   // LEGACY COMMANDS
   const commandController = new CommandController(
