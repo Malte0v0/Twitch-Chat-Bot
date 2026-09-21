@@ -1,8 +1,8 @@
 import { logTime } from "../errors/log.js";
 import { TwitchConnection } from "./twitchConnection.js";
 
-// const TWITCH_WS_URL = "wss://eventsub.wss.twitch.tv/ws";
-const TWITCH_WS_URL = "ws://127.0.0.1:8080/ws";
+const TWITCH_WS_URL = "wss://eventsub.wss.twitch.tv/ws";
+// const TWITCH_WS_URL = "ws://127.0.0.1:8080/ws";
 
 const BASE_RECONNECT_DELAY_MS = 1000;
 const MAX_RECONNECT_DELAY_MS = 30000;
