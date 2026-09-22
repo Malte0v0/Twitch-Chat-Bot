@@ -32,6 +32,7 @@ import { createMoviePlugin } from "./src/commands/movie/MoviePlugin.js";
 import { TwelveDataAdapter } from "./src/commands/stock/adapters/TwelveDataAdapter.js";
 import { StockService } from "./src/commands/stock/StockService.js";
 import { createStockPlugin } from "./src/commands/stock/StockPlugin.js";
+import { YahooFinanceAdapter } from "./src/commands/stock/adapters/YahooFinanceAdapter.js";
 
 const commandPrefix = "$";
 const REFRESH_INTERVAL_MS = 2 * 60 * 60 * 1000;
@@ -82,7 +83,8 @@ async function main() {
 
   // STOCKS
   const twelveDataAdapter = new TwelveDataAdapter(process.env.STOCK_API);
-  const stockService = new StockService(twelveDataAdapter);
+  const yahooFinanceAdapter = new YahooFinanceAdapter();
+  const stockService = new StockService(yahooFinanceAdapter);
   const stockPlugin = createStockPlugin(stockService);
 
   // MOVIE
