@@ -2,7 +2,7 @@ import { ReminderService } from "./commands/reminder/reminderService.js";
 import { AwayService } from "./commands/away/awayService.js";
 import { AWAY_STATUS } from "./commands/away/awayStatus.js";
 import { UserService } from "./user/userService.js";
-import { GtaCounterService } from "./gta/GtaCounterService.js";
+import { ReleaseDateCounterService } from "./gta/ReleaseDateCounterService.js";
 
 export class CommandController {
   constructor(chatService, database, scheduler) {
@@ -25,8 +25,8 @@ export class CommandController {
     this.awayService = new AwayService(chatService, database);
     this.awayService.start();
 
-    this.gtaCounter = new GtaCounterService(this.chatService);
-    this.gtaCounter.start();
+    this.releaseDateCounter = new ReleaseDateCounterService(this.chatService);
+    this.releaseDateCounter.start();
 
     this.execute = this.debounce(this.executeCommand, 500);
   }

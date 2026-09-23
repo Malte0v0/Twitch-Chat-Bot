@@ -10,8 +10,7 @@
     "build": "tsc",
     "start": "node dist/bot.js",
     "typecheck": "tsc --noEmit",
-    "pilot:typecheck": "tsc --noEmit -p tsconfig.pilot.json",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run build && node --test dist/**/*.test.js"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

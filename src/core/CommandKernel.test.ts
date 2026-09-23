@@ -47,5 +47,3 @@ const handled = await commandKernel.dispatch(input, context);
 
 assert.equal(handled, true);
 assert.deepEqual(calls, ["called"]);
-
-console.log("CommandKernel happy path passed");
