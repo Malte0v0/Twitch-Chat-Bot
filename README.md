@@ -8,13 +8,13 @@ Uses the Seismic Portal earthquake WebSocket from the European-Mediterranean Sei
 Example output:
 
 `⏰ 🚨 7.2 M earthquake near JAPAN`
+## Commands
 ### Stock
 Shows the price of a stock
 ```
 15:39 User: $stock AAPL
 15:39 Bot: AAPL $335.92
 ```
-## Commands
 ### Weather
 With the $weather (location) command you can get real time weather information about a specific location.
 ```
