@@ -2,11 +2,11 @@ import { event } from "../utils/events.js";
 import { msToHuman } from "../utils/timeUtils.js";
 
 const rareLink = [
-  "https://youtu.be/xZiSW0rI_9Y",
-  "https://youtu.be/joMjcNtxuTU",
-  "https://youtu.be/fD0kL-xbabg",
-  "https://youtu.be/cYG3S32OFCE",
-  "https://youtu.be/nfv4S2pK-PU",
+  "rare links",
+  "rare links",
+  "rare links",
+  "rare links",
+  "rare links",
 ];
 
 export class ReleaseDateCounterService {
@@ -37,13 +37,13 @@ export class ReleaseDateCounterService {
 
   formatChatMessage() {
     const untilReleaseDate = this.releaseDate().getTime() - this.now();
-    const baseMessage = `GTA 6 COMES OUT IN ${msToHuman(untilReleaseDate)}`;
+    const baseMessage = `${msToHuman(untilReleaseDate)}`;
 
     const rareLink = this.getRareLink();
 
     return rareLink !== ""
-      ? `${baseMessage} Luciass ${rareLink} Luciass`
-      : `${baseMessage} greekHeyy`;
+      ? `${baseMessage} ${rareLink}`
+      : `${baseMessage}`;
   }
 
   parseData(data) {

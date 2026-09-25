@@ -8,6 +8,8 @@ Uses the Seismic Portal earthquake WebSocket from the European-Mediterranean Sei
 Example output:
 
 `⏰ 🚨 7.2 M earthquake near JAPAN`
+### releaseDate
+Listens for a character in chat, then sends a chat message with the time remainding
 ## Commands
 ### Stock
 Shows the price of a stock.
