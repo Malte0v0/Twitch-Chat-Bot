@@ -10,7 +10,7 @@ Example output:
 `⏰ 🚨 7.2 M earthquake near JAPAN`
 ## Commands
 ### Stock
-Shows the price of a stock
+Shows the price of a stock.
 ```
 15:39 User: $stock AAPL
 15:39 Bot: AAPL $335.92
@@ -28,11 +28,11 @@ Can create and schedule reminders intuitively. Can also remind other users.
 15:39 Bot: @User, I will remind you in 3m (ID 1)
 15:42 Bot: @User, reminder from yourself (3m ago): take trash out
 ```
-**You can also set a reminder with the "in (time)" after the $remind part. Like:**
-- $remindme in 3d 2h remove old files from the git repo
-- $remind Adam in 3h how are you doing?
+**The reminder message can come before or after the "in" keyword + "duration**
+- $remind Adam in 3h how are you doing? ← Works
+- $remind Adam how are you doing? in 3h ← Works
 
-**The time can be set in many different formats:**
+**Time gets correctly parsed no matter how you type it:**
   - `3 days 2 hours`           -> 3 days and 2 hours
   - `3 h 2 day`                      -> 2 days and 3 hours
   - `2 w 1 s 3 h 4 days`     -> 2 weeks 4 days 3 hours and 1 second
@@ -52,7 +52,7 @@ With the $quote command you can get a random quote. Fetches and caches data from
 15:40 Bot: "Your problem isn't the problem. Your reaction is the problem." - Unknown
 ```
 ### News
-With the $news command you can get the top news stories. Fetches data from Google News.
+With the $news command you can see the current top news story. Fetches data from Google News.
 ```
 15:40 User: $news
 15:40 Bot: (3h 1m 8s ago) U.S. attempt to open Strait of Hormuz tests fragile Iran war ceasefire - NPR
