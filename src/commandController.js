@@ -2,7 +2,7 @@ import { ReminderService } from "./commands/reminder/reminderService.js";
 import { AwayService } from "./commands/away/awayService.js";
 import { AWAY_STATUS } from "./commands/away/awayStatus.js";
 import { UserService } from "./user/userService.js";
-import { ReleaseDateCounterService } from "./gta/ReleaseDateCounterService.js";
+import { ReleaseDateCounterService } from "./releaseDate/ReleaseDateCounterService.js";
 
 export class CommandController {
   constructor(chatService, database, scheduler) {
